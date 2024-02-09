@@ -3,7 +3,7 @@ import json
 import argparse
 from typing import Dict, List
 
-#ppmi is a bids dataset there should be a cleaner way to creat these invocations
+#ppmi is a bids dataset there should be a cleaner way to create these invocations
 
 BASELINE_SESSION = 'ses-BL'
 # BASELINE_SESSION = 'ses-*'
@@ -15,7 +15,7 @@ MOSUF = MODALITY + SUFFIX
 ORIGINAL = 'ieee'
 MCA = 'mca'
 PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_run-*_{MOSUF}'
-REF = pathlib.Path('')
+REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
 
 def find_scans(input_dir:pathlib.Path, pattern=PATTERN)->List[pathlib.Path]:
 
@@ -71,18 +71,18 @@ def create_flirt_invocation(subject:Dict, output_dir:pathlib.Path, reference=REF
     return invocations
 
 def write_invocation(subject_ID, session, invocation:Dict, output_dir:pathlib.Path, dry_run:bool=False):
-# fix the name for more than one session
+
     invocation_path = output_dir / f'{subject_ID}_{session}_invocation.json'
     if dry_run:
         print(f'Writing invocations to {invocation_path}')
         json.dump(invocation, invocation_path, indent=4)
     else:
         with open(invocation_path, 'w') as f:
-            print(invocation)
             json.dump(invocation, f, indent=4)
 
 
 def create_ieee_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs=12, dry_run:bool=False):
+    
     ieee_invocation_dir = invocation_dir / f'{ANATOMICAL}-{dofs}dofs' / ORIGINAL
 
     if dry_run:
@@ -97,6 +97,7 @@ def create_ieee_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocati
                 write_invocation(subject_ID, session, invocation, ieee_invocation_dir, dry_run)
 
 def create_mca_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs=12, n_mca:int=10, dry_run:bool=False):
+    
     mca_invocation_dir = invocation_dir / f'{ANATOMICAL}-{dofs}dofs' / MCA
 
     if dry_run:
@@ -105,7 +106,7 @@ def create_mca_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocatio
         mca_invocation_dir.mkdir(parents=True, exist_ok=True)
     
     for i in range(n_mca):
-        current_mca_invocation_dir = mca_invocation_dir / str(i)
+        current_mca_invocation_dir = mca_invocation_dir / str(i+1)
         current_mca_invocation_dir.mkdir(parents=True, exist_ok=True)
 
         for subject in subjects_map:
@@ -124,32 +125,38 @@ def make_flirt_invocation(input_dir:pathlib.Path, output_dir:pathlib.Path, invoc
 
 def parse_args():
 
-    parser = argparse.ArgumentParser(description='create invocation for MCA and Original data')
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@', description='create invocation for MCA and Original data')
     parser.add_argument('--input_dir', type=str, help='path to the input directory')
-    parser.add_argeument('--output_dir', type=str, help='path to the output directory')
+    parser.add_argument('--output_dir', type=str, help='path to the output directory')
     parser.add_argument('--n_mca', type=int, default=10, help='number of MCA repettions')
     parser.add_argument('--dry-run', action='store_true', help='Dry run')
 
     return parser.parse_args()
 
 if __name__ == '__main__':
-    input_dir = pathlib.Path.cwd() / 'test_ppmi_hc'
-    a = find_scans(input_dir)
+    args = parse_args()
+    input_dir = pathlib.Path(args.input_dir)
+    output_dir = pathlib.Path(args.output_dir)
+    invocation_dir = output_dir / 'invocations'
+    make_flirt_invocation(input_dir, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run)
 
-    # for i in a:
-    #     print(i)
+    # input_dir = pathlib.Path.cwd() / 'test_ppmi_hc'
+    # a = find_scans(input_dir)
 
-    # print(len(a))
+    # # for i in a:
+    # #     print(i)
+
+    # # print(len(a))
     
-    b = create_subject_map(input_dir)
-    # for i in b:
-    #     print(i)
-    #     # print(k)
-    #     # print('---')
-    #     print(b[i]['ses-BL'])
-    # print(create_flirt_invocation(b['sub-110350']['ses-BL'], input_dir))
-    # write_invocation(create_flirt_invocation(b['109910']['ses-BL'], input_dir), input_dir)
-    create_ieee_invocations(b, input_dir, input_dir.parent)
-    create_mca_invocations(b, input_dir, input_dir.parent)
+    # b = create_subject_map(input_dir)
+    # # for i in b:
+    # #     print(i)
+    # #     # print(k)
+    # #     # print('---')
+    # #     print(b[i]['ses-BL'])
+    # # print(create_flirt_invocation(b['sub-110350']['ses-BL'], input_dir))
+    # # write_invocation(create_flirt_invocation(b['109910']['ses-BL'], input_dir), input_dir)
+    # create_ieee_invocations(b, input_dir, input_dir.parent)
+    # create_mca_invocations(b, input_dir, input_dir.parent)
 
-    # print(b)
+    # # print(b)
