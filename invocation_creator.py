@@ -14,6 +14,8 @@ SUFFIX = '.nii.gz'
 MOSUF = MODALITY + SUFFIX
 ORIGINAL = 'ieee'
 MCA = 'mca'
+MAT = '.mat'
+
 PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_run-*_{MOSUF}'
 REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
 
@@ -52,18 +54,17 @@ def create_subject_map(input_dir: pathlib.Path, **kwargs):
 
     return subjects_map
 
-#think about more than one session later
 
 def create_flirt_invocation(subject:Dict, output_dir:pathlib.Path, reference=REF, dofs=12)->Dict:
 
     in_file = subject['input_path']
     out_file = output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
-    out_matrix_file = out_file.with_suffix('.mat')
+    out_matrix_file = out_file.remove_suffix(SUFFIX).with_suffix(MAT)
 
     invocations = {
         'in_file': str(in_file),
-        'out_file': str(out_file),
-        'out_matrix_file': str(out_matrix_file),
+        'out_filename': str(out_file),
+        'out_mat_filename': str(out_matrix_file),
         'reference': str(reference),
         'dof': dofs
     }      
@@ -134,6 +135,7 @@ def parse_args():
     return parser.parse_args()
 
 if __name__ == '__main__':
+
     args = parse_args()
     input_dir = pathlib.Path(args.input_dir)
     output_dir = pathlib.Path(args.output_dir)
@@ -147,6 +149,8 @@ if __name__ == '__main__':
     # #     print(i)
 
     # # print(len(a))
+    # scan_path=pathlib.Path("/home/niusha/Documents/Codes/mca_linear_registration/test_ppmi_hc/sub-109910/ses-BL/anat/sub-109910_ses-BL_acq-sag3D_run-01_T1w.nii.gz")
+    # input_dir = pathlib.Path("/home/niusha/Documents/Codes/mca_linear_registration/test_ppmi_hc")
     
     # b = create_subject_map(input_dir)
     # # for i in b:
@@ -160,3 +164,7 @@ if __name__ == '__main__':
     # create_mca_invocations(b, input_dir, input_dir.parent)
 
     # # print(b)
+
+# bosh exec launch --imagepath ./glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg ./flirt-fuzzy.json ./test_ppmi_hc ::: /outputs/invocations/anat-12dofs/mca/1/*
+
+   
