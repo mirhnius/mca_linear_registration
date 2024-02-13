@@ -3,7 +3,7 @@ import json
 import argparse
 from typing import Dict, List
 
-#ppmi is a bids dataset there should be a cleaner way to create these invocations
+#   ppmi is a bids dataset there should be a cleaner way to create these invocations
 
 BASELINE_SESSION = 'ses-BL'
 # BASELINE_SESSION = 'ses-*'
