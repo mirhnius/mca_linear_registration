@@ -5,3 +5,9 @@ test_ppmi_hc
 invoc
 anat*
 list.txt
+args.txt
+tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz
+outputs
+participants.tsv  
+temp*.sh
+.docker*
