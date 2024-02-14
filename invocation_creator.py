@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import pathlib
 import json
 import argparse
@@ -19,9 +21,28 @@ MAT = '.mat'
 PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_run-*_{MOSUF}'
 REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
 
-def find_scans(input_dir:pathlib.Path, pattern=PATTERN)->List[pathlib.Path]:
+def read_subjects(file_path:str)->List[str]:
 
-    return list(input_dir.glob(str(pattern)))
+    if file_path is None:
+        return None
+    
+    with open(file_path, 'r') as f:
+        subjects_paths = f.readlines()
+    return [subject_path.strip() for subject_path in subjects_paths]    
+
+
+def find_scans(input_dir:pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)->List[pathlib.Path]:
+
+    if sub_dirs is None:
+        return list(input_dir.glob(str(pattern)))
+    else:
+        scan_paths = []
+        pattern = pathlib.Path('') / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_run-*_{MOSUF}'
+
+        for sub_dir in sub_dirs:
+            scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
+
+        return scan_paths
 
 def scan_filed_dict(scan_path:pathlib.Path)-> Dict:
  
@@ -34,9 +55,9 @@ def scan_filed_dict(scan_path:pathlib.Path)-> Dict:
         'modality': modalitiy,
     }
 
-def create_subject_map(input_dir: pathlib.Path, **kwargs):
+def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)->Dict:
 
-    scans_paths = find_scans(input_dir) #how to add patterns?
+    scans_paths = find_scans(input_dir, pattern, sub_dirs) #how to add patterns?
     subjects_map = {}
     for scan_path in scans_paths:
 
@@ -59,7 +80,8 @@ def create_flirt_invocation(subject:Dict, output_dir:pathlib.Path, reference=REF
 
     in_file = subject['input_path']
     out_file = output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
-    out_matrix_file = out_file.remove_suffix(SUFFIX).with_suffix(MAT)
+    # out_matrix_file = out_file.remove_suffix(SUFFIX).with_suffix(MAT)
+    out_matrix_file = out_file.with_suffix('').with_suffix(MAT)
 
     invocations = {
         'in_file': str(in_file),
@@ -117,10 +139,10 @@ def create_mca_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocatio
                 subject_ID = subjects_map[subject][session]['subject']
                 write_invocation(subject_ID, session, invocation, current_mca_invocation_dir, dry_run)
 
-def make_flirt_invocation(input_dir:pathlib.Path, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs:List=[12], n_mca:int=10, dry_run:bool=False):
+def make_flirt_invocation(input_dir:pathlib.Path, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs:List=[12], n_mca:int=10, dry_run:bool=False, pattern=PATTERN, sub_dirs:List[str]=None):
 
     for dof in dofs:
-        subjects_map = create_subject_map(input_dir)
+        subjects_map = create_subject_map(input_dir, pattern, sub_dirs)
         create_ieee_invocations(subjects_map, output_dir, invocation_dir, reference, dof, dry_run)
         create_mca_invocations(subjects_map, output_dir, invocation_dir, reference, dof, n_mca, dry_run)
 
@@ -131,7 +153,9 @@ def parse_args():
     parser.add_argument('--output_dir', type=str, help='path to the output directory')
     parser.add_argument('--n_mca', type=int, default=10, help='number of MCA repettions')
     parser.add_argument('--dry-run', action='store_true', help='Dry run')
-
+    # parser.add_argument('--dofs', type=int, nargs='+', default=[12], help='Degrees of freedom for flirt')
+    parser.add_argument('--input_subjects', type=str, default=None, help='input subjects paths')
+  
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -140,7 +164,9 @@ if __name__ == '__main__':
     input_dir = pathlib.Path(args.input_dir)
     output_dir = pathlib.Path(args.output_dir)
     invocation_dir = output_dir / 'invocations'
-    make_flirt_invocation(input_dir, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run)
+    input_subjects = args.input_subjects
+    sub_dirs = read_subjects(input_subjects)
+    make_flirt_invocation(input_dir, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
 
     # input_dir = pathlib.Path.cwd() / 'test_ppmi_hc'
     # a = find_scans(input_dir)
