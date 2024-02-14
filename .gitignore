@@ -2,8 +2,7 @@
 *.simg
 test
 test_ppmi_hc
-invoc
-anat*
+invocations
 list.txt
 args.txt
 tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz
