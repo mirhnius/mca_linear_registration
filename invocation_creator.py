@@ -107,35 +107,43 @@ def write_invocation(subject_ID, session, invocation:Dict, output_dir:pathlib.Pa
 def create_ieee_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs=12, dry_run:bool=False):
     
     ieee_invocation_dir = invocation_dir / f'{ANATOMICAL}-{dofs}dofs' / ORIGINAL
+    ieee_output_dir = output_dir / f'{ANATOMICAL}-{dofs}dofs' / ORIGINAL
 
     if dry_run:
         print(f'Invocations exist on {ieee_invocation_dir}')
     else:
         ieee_invocation_dir.mkdir(parents=True, exist_ok=True)
+        ieee_output_dir.mkdir(parents=True, exist_ok=True)
 
         for subject in subjects_map:
             for session in subjects_map[subject]:
-                invocation = create_flirt_invocation(subjects_map[subject][session], output_dir, reference, dofs)
+                invocation = create_flirt_invocation(subjects_map[subject][session], ieee_output_dir, reference, dofs)
                 subject_ID = subjects_map[subject][session]['subject']
                 write_invocation(subject_ID, session, invocation, ieee_invocation_dir, dry_run)
 
 def create_mca_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs=12, n_mca:int=10, dry_run:bool=False):
     
     mca_invocation_dir = invocation_dir / f'{ANATOMICAL}-{dofs}dofs' / MCA
+    mca_output_dir = output_dir / f'{ANATOMICAL}-{dofs}dofs' / MCA
 
     if dry_run:
         print(f'Invocations exist on {mca_invocation_dir}')
     else:
         mca_invocation_dir.mkdir(parents=True, exist_ok=True)
+        mca_output_dir.mkdir(parents=True, exist_ok=True)
     
     for i in range(n_mca):
+
         current_mca_invocation_dir = mca_invocation_dir / str(i+1)
         current_mca_invocation_dir.mkdir(parents=True, exist_ok=True)
+
+        current_mca_output_dir = mca_output_dir / str(i+1)
+        current_mca_output_dir.mkdir(parents=True, exist_ok=True)
 
         for subject in subjects_map:
             for session in subjects_map[subject]:
 
-                invocation = create_flirt_invocation(subjects_map[subject][session], output_dir)
+                invocation = create_flirt_invocation(subjects_map[subject][session], current_mca_output_dir)
                 subject_ID = subjects_map[subject][session]['subject']
                 write_invocation(subject_ID, session, invocation, current_mca_invocation_dir, dry_run)
 
@@ -163,7 +171,7 @@ if __name__ == '__main__':
     args = parse_args()
     input_dir = pathlib.Path(args.input_dir)
     output_dir = pathlib.Path(args.output_dir)
-    invocation_dir = output_dir / 'invocations'
+    invocation_dir = pathlib.Path().cwd() / 'invocations'
     input_subjects = args.input_subjects
     sub_dirs = read_subjects(input_subjects)
     make_flirt_invocation(input_dir, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
