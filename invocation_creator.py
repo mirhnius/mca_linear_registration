@@ -5,7 +5,7 @@ import json
 import argparse
 from typing import Dict, List
 
-#   ppmi is a bids dataset there should be a cleaner way to create these invocations
+#ppmi is a bids dataset there should be a cleaner way to create these invocations
 
 BASELINE_SESSION = 'ses-BL'
 # BASELINE_SESSION = 'ses-*'
@@ -159,6 +159,7 @@ def parse_args():
     parser = argparse.ArgumentParser(fromfile_prefix_chars='@', description='create invocation for MCA and Original data')
     parser.add_argument('--input_dir', type=str, help='path to the input directory')
     parser.add_argument('--output_dir', type=str, help='path to the output directory')
+    parser.add_argument('--invocation_dir', type=str, default=pathlib.Path().cwd()/'invocations', help='path to invocation directory')
     parser.add_argument('--n_mca', type=int, default=10, help='number of MCA repettions')
     parser.add_argument('--dry-run', action='store_true', help='Dry run')
     # parser.add_argument('--dofs', type=int, nargs='+', default=[12], help='Degrees of freedom for flirt')
@@ -171,34 +172,9 @@ if __name__ == '__main__':
     args = parse_args()
     input_dir = pathlib.Path(args.input_dir)
     output_dir = pathlib.Path(args.output_dir)
-    invocation_dir = pathlib.Path().cwd() / 'invocations'
+    invocation_dir = pathlib.Path(args.invocation_dir)
     input_subjects = args.input_subjects
     sub_dirs = read_subjects(input_subjects)
     make_flirt_invocation(input_dir, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
 
-    # input_dir = pathlib.Path.cwd() / 'test_ppmi_hc'
-    # a = find_scans(input_dir)
-
-    # # for i in a:
-    # #     print(i)
-
-    # # print(len(a))
-    # scan_path=pathlib.Path("/home/niusha/Documents/Codes/mca_linear_registration/test_ppmi_hc/sub-109910/ses-BL/anat/sub-109910_ses-BL_acq-sag3D_run-01_T1w.nii.gz")
-    # input_dir = pathlib.Path("/home/niusha/Documents/Codes/mca_linear_registration/test_ppmi_hc")
     
-    # b = create_subject_map(input_dir)
-    # # for i in b:
-    # #     print(i)
-    # #     # print(k)
-    # #     # print('---')
-    # #     print(b[i]['ses-BL'])
-    # # print(create_flirt_invocation(b['sub-110350']['ses-BL'], input_dir))
-    # # write_invocation(create_flirt_invocation(b['109910']['ses-BL'], input_dir), input_dir)
-    # create_ieee_invocations(b, input_dir, input_dir.parent)
-    # create_mca_invocations(b, input_dir, input_dir.parent)
-
-    # # print(b)
-
-# bosh exec launch --imagepath ./glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg ./flirt-fuzzy.json ./test_ppmi_hc ::: /outputs/invocations/anat-12dofs/mca/1/*
-
-   
