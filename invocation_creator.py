@@ -12,13 +12,14 @@ BASELINE_SESSION = 'ses-BL'
 ANATOMICAL = 'anat'
 ACCUSITION = 'acq-sag3D'
 MODALITY= 'T1w'
+RUN = 'run-01'
 SUFFIX = '.nii.gz'
 MOSUF = MODALITY + SUFFIX
 ORIGINAL = 'ieee'
 MCA = 'mca'
 MAT = '.mat'
 
-PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_run-*_{MOSUF}'
+PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_{RUN}_{MOSUF}'
 REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
 
 def read_subjects(file_path:str)->List[str]:
@@ -37,11 +38,14 @@ def find_scans(input_dir:pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)
         return list(input_dir.glob(str(pattern)))
     else:
         scan_paths = []
-        pattern = pathlib.Path('') / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_run-*_{MOSUF}'
+        pattern = pathlib.Path('') / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_{RUN}_{MOSUF}'
 
         for sub_dir in sub_dirs:
             scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
-
+    
+            if len(list(pathlib.Path(sub_dir).glob(str(pattern)))) == 0:
+                print(sub_dir)
+        
         return scan_paths
 
 def scan_filed_dict(scan_path:pathlib.Path)-> Dict:
