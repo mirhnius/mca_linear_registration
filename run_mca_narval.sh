@@ -9,12 +9,13 @@
 #SBATCH --array=1-10
 
 
-module load apptainer/1.1
+module load apptainer/1.1.8
 source /home/niusham/py11/bin/activate
 #MCA
-parallel "time bosh exec launch --imagepath ./fuzzy_fsl_6.0.4_latest.sif ./flirt-fuzzy.json ./{1}" ::: ./invocations_PD/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
+# parallel "time bosh exec launch --imagepath ./fuzzy_fsl_6.0.4_latest.sif ./flirt-fuzzy.json ./{1}" ::: ./invocations_PD/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
 # parallel "time bosh exec launch --imagepath container_images/glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg descriptors/flirt-fuzzy.json ./{1}" ::: invocations/mca/${SLURM_ARRAY_TASK_ID}/*
 # parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-glatard/brainhack-2023-linear-registration/container_images/glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg ./flirt-fuzzy.json ./{1}" ::: ./invocations/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
+ parallel "time bosh exec launch --imagepath fuzzy_fsl_6.0.4_latest.sif ./flirt-fuzzy.json ./{1}" ::: ./invocations/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
 #yohanchatelain-ants-v2.5.0-fuzzy.simg
 #antsx-ants-v2.5.0.simg  
 # glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg
