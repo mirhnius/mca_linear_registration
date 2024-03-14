@@ -5,6 +5,7 @@ import json
 import argparse
 from typing import Dict, List
 
+#need to refactor to OO
 #ppmi is a bids dataset there should be a cleaner way to create these invocations
 
 BASELINE_SESSION = 'ses-BL'
@@ -97,6 +98,36 @@ def create_flirt_invocation(subject:Dict, output_dir:pathlib.Path, reference=REF
 
     return invocations
 
+
+def create_bet_invocation(subject:Dict, output_dir:pathlib.Path, f=0.5) -> Dict:
+
+    # in_file = subject['out_filename']
+    # subject, session = pathlib.Path(in_file).name.remove_suffix(SUFFIX).split('_')
+    # out_file = output_dir / f"{subject}_{session}{SUFFIX}"
+
+    in_file = subject['input_path']
+    out_file = output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
+
+    invocations = {
+        'in_file': str(in_file),
+        'maskfile': str(out_file), #output
+        "fractional_intensity": f
+    }  
+
+    return invocations
+
+def create_robustfov_invocation(subject:Dict, output_dir:pathlib.Path):
+
+    in_file = subject['input']
+    out_file = output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
+
+    invocations = {
+        'in_file': in_file,
+        'out_roi': out_file
+    }
+
+    return invocations
+
 def write_invocation(subject_ID, session, invocation:Dict, output_dir:pathlib.Path, dry_run:bool=False):
 
     invocation_path = output_dir / f'{subject_ID}_{session}_invocation.json'
@@ -108,6 +139,38 @@ def write_invocation(subject_ID, session, invocation:Dict, output_dir:pathlib.Pa
             json.dump(invocation, f, indent=4)
 
 
+def make_robustfov_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, dry_run:bool=False):
+
+    if dry_run:
+        print(f'Invocations exist on {invocation_dir}')
+    else:
+        invocation_dir.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True) 
+
+    for subject in subjects_map:
+            for session in subjects_map[subject]:
+
+                invocation = create_robustfov_invocation(subjects_map[subject][session], output_dir)
+                subject_ID = subjects_map[subject][session]['subject']
+                write_invocation(subject_ID, session, invocation, invocation_dir, dry_run)
+
+def make_bet_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, f=0.5, dry_run:bool=False):
+
+    if dry_run:
+        print(f'Invocations exist on {invocation_dir}')
+    else:
+        invocation_dir.mkdir(parents=True, exist_ok=True)
+        output_dir.mkdir(parents=True, exist_ok=True) 
+
+    for subject in subjects_map:
+            for session in subjects_map[subject]:
+
+                invocation = create_bet_invocation(subjects_map[subject][session], output_dir,f)
+                subject_ID = subjects_map[subject][session]['subject']
+                write_invocation(subject_ID, session, invocation, invocation_dir, dry_run)
+
+
+          
 def create_ieee_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs=12, dry_run:bool=False):
     
     ieee_invocation_dir = invocation_dir / f'{ANATOMICAL}-{dofs}dofs' / ORIGINAL
@@ -151,12 +214,12 @@ def create_mca_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocatio
                 subject_ID = subjects_map[subject][session]['subject']
                 write_invocation(subject_ID, session, invocation, current_mca_invocation_dir, dry_run)
 
-def make_flirt_invocation(input_dir:pathlib.Path, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs:List=[12], n_mca:int=10, dry_run:bool=False, pattern=PATTERN, sub_dirs:List[str]=None):
+def make_flirt_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, reference=REF, dofs:List=[12], n_mca:int=10, dry_run:bool=False):
 
     for dof in dofs:
-        subjects_map = create_subject_map(input_dir, pattern, sub_dirs)
         create_ieee_invocations(subjects_map, output_dir, invocation_dir, reference, dof, dry_run)
         create_mca_invocations(subjects_map, output_dir, invocation_dir, reference, dof, n_mca, dry_run)
+
 
 def parse_args():
 
@@ -179,6 +242,7 @@ if __name__ == '__main__':
     invocation_dir = pathlib.Path(args.invocation_dir)
     input_subjects = args.input_subjects
     sub_dirs = read_subjects(input_subjects)
-    make_flirt_invocation(input_dir, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
+    subjects_map = create_subject_map(input_dir, PATTERN, sub_dirs)
+    make_flirt_invocations(subjects_map, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
 
     
