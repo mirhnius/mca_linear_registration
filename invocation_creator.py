@@ -118,12 +118,12 @@ def create_bet_invocation(subject:Dict, output_dir:pathlib.Path, f=0.5) -> Dict:
 
 def create_robustfov_invocation(subject:Dict, output_dir:pathlib.Path):
 
-    in_file = subject['input']
+    in_file = subject['input_path']
     out_file = output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
 
     invocations = {
-        'in_file': in_file,
-        'out_roi': out_file
+        'in_file': str(in_file),
+        'out_roi': str(out_file)
     }
 
     return invocations
@@ -139,7 +139,7 @@ def write_invocation(subject_ID, session, invocation:Dict, output_dir:pathlib.Pa
             json.dump(invocation, f, indent=4)
 
 
-def make_robustfov_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, dry_run:bool=False):
+def make_robustfov_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, dry_run:bool=False, flag:bool=False):
 
     if dry_run:
         print(f'Invocations exist on {invocation_dir}')
@@ -153,6 +153,9 @@ def make_robustfov_invocations(subjects_map:Dict, output_dir:pathlib.Path, invoc
                 invocation = create_robustfov_invocation(subjects_map[subject][session], output_dir)
                 subject_ID = subjects_map[subject][session]['subject']
                 write_invocation(subject_ID, session, invocation, invocation_dir, dry_run)
+                if flag:
+                    subjects_map[subject][session]['input_path'] = invocation['out_roi']
+    return subjects_map
 
 def make_bet_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, f=0.5, dry_run:bool=False):
 
@@ -168,6 +171,8 @@ def make_bet_invocations(subjects_map:Dict, output_dir:pathlib.Path, invocation_
                 invocation = create_bet_invocation(subjects_map[subject][session], output_dir,f)
                 subject_ID = subjects_map[subject][session]['subject']
                 write_invocation(subject_ID, session, invocation, invocation_dir, dry_run)
+            
+
 
 
           
@@ -237,12 +242,33 @@ def parse_args():
 if __name__ == '__main__':
 
     args = parse_args()
+    # input_dir = pathlib.Path(args.input_dir)
+    # output_dir = pathlib.Path(args.output_dir)
+    # invocation_dir = pathlib.Path(args.invocation_dir)
+    # input_subjects = args.input_subjects
+    # sub_dirs = read_subjects(input_subjects)
+    # subjects_map = create_subject_map(input_dir, PATTERN, sub_dirs)
+    # make_flirt_invocations(subjects_map, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
+
     input_dir = pathlib.Path(args.input_dir)
     output_dir = pathlib.Path(args.output_dir)
     invocation_dir = pathlib.Path(args.invocation_dir)
-    input_subjects = args.input_subjects
-    sub_dirs = read_subjects(input_subjects)
-    subjects_map = create_subject_map(input_dir, PATTERN, sub_dirs)
-    make_flirt_invocations(subjects_map, output_dir, invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run, sub_dirs=sub_dirs)
+    sub_dirs = read_subjects(args.input_subjects)
+    robustfov_invocation_dir = invocation_dir / 'robustfov'
+    bet_invocation_dir = invocation_dir / 'bet'
+    flirt_invocation_dir = invocation_dir / 'flirt'
+    input_subjects = args.input_subjects 
+    robustfov_input_dir = input_dir
+    robustfov_output_dir = output_dir / 'preprocess'
+    bet_output_dir = robustfov_output_dir
+
+    subjects_map = create_subject_map(robustfov_input_dir, sub_dirs=sub_dirs)
+    subjects_map_after_preprocess = make_robustfov_invocations(subjects_map, robustfov_output_dir, robustfov_invocation_dir, flag=True, dry_run=args.dry_run)
+
+
+    # subjects_map_after_preprocess = create_subject_map(robustfov_output_dir, pattern= pathlib.Path('')/f'sub-*_{BASELINE_SESSION}_{MOSUF}')
+    print(subjects_map_after_preprocess)
+    make_bet_invocations(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir, f=0.3, dry_run=args.dry_run)
+    make_flirt_invocations(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca, dry_run=args.dry_run)
 
     
