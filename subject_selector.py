@@ -11,18 +11,28 @@ COHORT = "COHORT_DEFINITION"
 BASELINE = "BL"
 VISIT = "visit"
 ID = "bids_id"
-
+SESSION = 'ses-BL'
+ANATOMICAL = 'anat'
+ACCUSITION = 'acq-sag3D'
+MODALITY= 'T1w'
+RUN = 'run-01'
+SUFFIX = '.nii.gz'
+MOSUF = MODALITY + SUFFIX
+ORIGINAL = 'ieee'
+MCA = 'mca'
+MAT = '.mat'
+PATTERN = pathlib.Path('') / SESSION / ANATOMICAL / f'sub-*_{SESSION}_{ACCUSITION}_{RUN}_{MOSUF}'
 def join_path(*args):
     return str(pathlib.Path(*args).resolve())
 
-def valid_path(path_str):
+def valid_path(path_str, pattern=PATTERN):
 
     path = pathlib.Path(path_str)
     if path.exists():
-        anat = path / 'anat'
-        if anat.exists():
-            return True
-        return False
+        if len(list(pathlib.Path(path).glob(str(pattern)))) == 0:
+            return False
+        return True
+    
     return False
 
 parser = argparse.ArgumentParser(description='Select subjects from a list of subjects')
