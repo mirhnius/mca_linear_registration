@@ -131,7 +131,7 @@ class BET_preprocessing(Preprocessing):
         out_file = self.output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
 
         invocation = {
-            'in_file': str(in_file),
+            'infile': str(in_file),
             'maskfile': str(out_file), #output
             "fractional_intensity": self.f
         } 
@@ -203,4 +203,5 @@ class FLIRT_MCA_preprocessing(FLIRT_preprocessing):
             super().create_invocations(dry_run)
             self.output_dir = self.output_dir.parent
 
-    
+
+

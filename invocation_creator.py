@@ -21,7 +21,7 @@ MCA = 'mca'
 MAT = '.mat'
 
 PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_{RUN}_{MOSUF}'
-REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
+REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
 
 def read_subjects(file_path:str)->List[str]:
 
@@ -109,7 +109,7 @@ def create_bet_invocation(subject:Dict, output_dir:pathlib.Path, f=0.5) -> Dict:
     out_file = output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
 
     invocations = {
-        'in_file': str(in_file),
+        'infile': str(in_file),
         'maskfile': str(out_file), #output
         "fractional_intensity": f
     }  
