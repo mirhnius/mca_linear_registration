@@ -21,6 +21,15 @@ REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
 
 
 def read_subjects_paths(file_path:str)->List[str]:
+    """
+    Read a file containing paths to subjects' directories and returns a list of paths.
+
+    Paremeters:
+        file_path: str, path to the file containing the subjects' paths.
+
+    Returns:
+        List[str]: A list of subjects' paths.
+    """
 
     if file_path is None:
         return None
@@ -31,6 +40,17 @@ def read_subjects_paths(file_path:str)->List[str]:
 
 
 def find_scans(input_dir:pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)->List[pathlib.Path]:
+    """
+    Finds and returns a list of scan paths based on the specified pattern.
+
+    Parameters:
+        input_dir (pathlib.Path): The directory to search within.
+        pattern (pathlib.Path): The pattern to search for.
+        sub_dirs (List[str]): Optional list of subdirectories to limit the search.
+
+    Returns:
+        List[pathlib.Path]: A list of scan paths that match the specified pattern.
+    """
 
     if sub_dirs is None:
         return list(input_dir.glob(str(pattern)))
@@ -47,6 +67,15 @@ def find_scans(input_dir:pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)
         return scan_paths
 
 def scan_filed_dict(scan_path:pathlib.Path)-> Dict:
+    """
+    Extracts and return scan-related fields from the scan path.
+
+    Parameters:
+        scan_path (pathlib.Path): The scan path to extract fields from.
+    
+    Returns:
+        Dict: A dictionary containing the extracted fields.
+    """
  
     subject_ID, session, _, run, modalitiy  = scan_path.name.split('_')
     return {
@@ -58,6 +87,17 @@ def scan_filed_dict(scan_path:pathlib.Path)-> Dict:
     }
 
 def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)->Dict:
+    """
+    Creates and returns a map of subjects and their scans based on the specified pattern.
+
+    Parameters:
+        input_dir (pathlib.Path): The directory to search within.
+        pattern (pathlib.Path): The pattern match filenames against.
+        sub_dirs (List[str]): Optional list of subdirectories to limit the search.
+    
+        Returns:
+            Dict: A dictionary containing the subjects and their scans.
+        """
 
     scans_paths = find_scans(input_dir, pattern, sub_dirs) #how to add patterns?
     subjects_map = {}
@@ -78,24 +118,69 @@ def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs:List[s
     return subjects_map
 
 def updating_subject_map(subjects_map:Dict, input_dir:pathlib.Path)->Dict:
+    """
+    Updates the input path of the subjects in the subjects_map.
+
+    Parameters:
+        subjects_map (Dict): A dictionary containing the subjects and their scans.
+        input_dir (pathlib.Path): The replacement input directory.
+
+    Returns:
+        Dict: A dictionary containing the subjects and their updated scan paths.
+    """
     
     for subject in subjects_map:
         for session in subjects_map[subject]:
-            subjects_map[subject][session]['input_path'] = str(input_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}")
+            subjects_map[subject][session]['input_path'] = str(input_dir / f"{subject}_{session}{SUFFIX}")
+    
     return subjects_map
 
 class Preprocessing(ABC):
+    """
+    Abstract class for preprocessing steps.
+    """
 
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.path, invocation_dir:pathlib.Path):
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path):
+        """
+        Initializes the Preprocessing class.
+
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their information.
+            output_dir (pathlib.Path): The directory where the outputs will be saved.
+            invocation_dir (pathlib.Path): The directory where the invocations will be saved.
+            
+        """
         self.subjects_maps = subjects_maps
         self.output_dir = output_dir
         self.invocation_dir = invocation_dir
 
     @abstractmethod
     def create_single_subject_invocation(self, subject:Dict)->Dict:
+        """
+        Creates and returns a single subject invocation dictionary.
+
+        Parameters:
+            subject (Dict): A dictionary containing the subject information.
+        
+        Returns:
+            Dict: A dictionary containing the subject invocation for the preprocessing steps.
+
+        """
         pass
 
-    def write_invocation(self, subject_ID: str, session: str, invocation:Dict, output_dir:pathlib.Path, dry_run:bool=False):
+    def write_invocation(self, subject_ID: str, session: str, invocation:Dict, dry_run:bool=False):
+        """
+        Writes a single preprocessing invocation to a JSON file.
+
+        Given a subject ID, session, and invocation dictionary, this method constructs
+        a file name and writes the invocation dictionary to a JSON file within the invocation directory.
+
+        Parameters:
+            subject_ID (str): The subject ID.
+            session (str): The session ID.
+            invocation (Dict): The invocation dictionary.
+            dry_run (bool): If True, the invocations are printed to the console instead of being written to files.
+        """
 
         invocation_path = self.invocation_dir / f'{subject_ID}_{session}_invocation.json'
         if dry_run:
@@ -106,6 +191,19 @@ class Preprocessing(ABC):
                 json.dump(invocation, f, indent=4)
 
     def create_invocations(self,dry_run:bool=False):
+            """
+            Generates and writes the preprocessing invocations JSON files for each subject.
+
+            This method itereates throught all subjects and their respective sessions as defined in their subjects_maps,
+            and generating a specific invocation for each subject and session. These invocations are then written to files
+            within the invocation directory. Directories are created if they do not exist.
+
+            Parameters:
+                dry_run (bool): If True, the invocations are printed to the console instead of being written to files.
+            
+            Returns:
+                None
+            """
             if dry_run:
                 print(f'Invocations exist on {self.invocation_dir}')
             else:
@@ -115,17 +213,37 @@ class Preprocessing(ABC):
             for subject in self.subjects_maps:
                 for session in self.subjects_maps[subject]:
 
-                    invocation = self.create_single_subject_invocation(self.subjects_maps[subject][session], self.output_dir)
+                    invocation = self.create_single_subject_invocation(self.subjects_maps[subject][session])
                     subject_ID = self.subjects_maps[subject][session]['subject']
-                    self.write_invocation(subject_ID, session, invocation, self.invocation_dir, dry_run)
+                    self.write_invocation(subject_ID, session, invocation, dry_run)
+
 
 class BET_preprocessing(Preprocessing):
 
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.path, invocation_dir:pathlib.Path, f:float=0.5):
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, f:float=0.5):
+        """
+        Initializes the BET preprocessing class.
+
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output BET files will be saved.
+            invocation_dir (pathlib.Path): The directory where the invocations will be saved.
+            f (float): The fractional intensity threshold for BET. Deafult is 0.5.
+    
+        """
         super().__init__(subjects_maps, output_dir, invocation_dir)
         self.f = f
 
     def create_single_subject_invocation(self, subject:Dict)->Dict:
+        """
+        Generates the BET preprocessing invocation for a single subject.
+
+        Parameters:
+            subject (Dict): A dictionary containing details of the subject, including the input path.
+
+        Returns:
+            Dict: BET invocation parameters including input file and mask file paths and fractional intensity.
+        """
 
         in_file = subject['input_path']
         out_file = self.output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
@@ -138,8 +256,16 @@ class BET_preprocessing(Preprocessing):
         return invocation
     
 class ROBUSTFOV_preprocessing(Preprocessing):
+    """
+    Initializes the ROBUSTFOV preprocessing class.
 
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.path, invocation_dir:pathlib.Path):
+    Parameters:
+        subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+        output_dir (pathlib.Path): The directory where the output ROBUSTFOV files will be saved.
+        invocation_dir (pathlib.Path): The directory where the invocations will be saved.
+    """
+
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path):
         super().__init__(subjects_maps, output_dir, invocation_dir)
     
 
@@ -157,12 +283,31 @@ class ROBUSTFOV_preprocessing(Preprocessing):
 
 class FLIRT_preprocessing(Preprocessing):
 
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
+        """
+        Initializes the FLIRT preprocessing class.
+
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output FLIRT files will be saved.
+            invocation_dir (pathlib.Path): The directory where the invocations will be saved.
+            ref (str): The reference file for FLIRT. Default is MNI152.
+            dof (int): The degrees of freedom for FLIRT. Default is 12.
+        """
         super().__init__(subjects_maps, output_dir, invocation_dir)
         self.ref = ref
         self.dofs = dof
 
     def create_single_subject_invocation(self, subject:Dict)->Dict:
+        """
+        Generates and returns the FLIRT preprocessing invocation for a single subject.
+
+        Parameters:
+            subject (Dict): A dictionary containing details of the subject, including the input path.
+
+        Returns:
+            Dict: FLIRT invocation parameters including input file, reference file, output file, and degrees of freedom.
+        """
 
         in_file = subject['input_path']
         out_file = self.output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
@@ -179,10 +324,21 @@ class FLIRT_preprocessing(Preprocessing):
     
 class FLIRT_IEEE_preprocessing(FLIRT_preprocessing):
 
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
+        """
+        Initializes the FLIRT preprocessing class for IEEE standard with subject maps, output directory, invocation directory, reference image, and degrees of freedom.
+        
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output FLIRT IEEE files will be saved.
+            invocation_dir (pathlib.Path): The directory where the FLIRT IEEE invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
+        """
         super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
        
-        self.output_dir = self.output_dir / ORIGINAL
+        self.output_dir = self.output_dir / f'anat-{str(self.dofs)}dofs' / ORIGINAL
+        self.invocation_dir = self.invocation_dir / f'anat-{str(self.dofs)}dofs' / ORIGINAL
 
     def create_invocations(self, dry_run: bool = False):
         return super().create_invocations(dry_run)
@@ -190,18 +346,83 @@ class FLIRT_IEEE_preprocessing(FLIRT_preprocessing):
 
 class FLIRT_MCA_preprocessing(FLIRT_preprocessing):
 
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.path, invocation_dir:pathlib.Path, ref:str=REF, n_mca:int=10, dof:int=12):
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, n_mca:int=10, dof:int=12):
+        """
+        Initializes the FLIRT preprocessing class for MCA (Monte Carlo Arithmetic) with subject maps, output directory, invocation directory, reference image, degrees of freedom, and the number of MCA iterations.
+        
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output FLIRT MCA files will be saved.
+            invocation_dir (pathlib.Path): The directory where the FLIRT MCA invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            n_mca (int): Number of MCA iterations to be performed for the preprocessing step.
+            dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
+        """
         super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
         self.n_mca = n_mca
-        self.output_dir = self.output_dir / MCA
+        self.output_dir = self.output_dir / f'anat-{str(self.dofs)}dofs' / MCA
+        self.invocation_dir = self.invocation_dir / f'anat-{str(self.dofs)}dofs' / MCA
+
 
     def create_invocations(self, dry_run: bool = False):
+        """
+        Generates and writes the FLIRT MCA preprocessing invocations JSON files for each subject
+        across specified neumebr of MCA iterations. Each iteration potentially generates a slightly different
+        output file due to the randomness of the MCA algorithm.
+
+        Parameters:
+            dry_run (bool): If True, the invocations are printed to the console instead of being written to files.
+        
+        Returns:
+            None
+        """
 
         for i in range(self.n_mca):
 
-            self.output_dir = self.output_dir / f"{i}"
+            self.output_dir = self.output_dir / f"{i+1}"
+            self.invocation_dir = self.invocation_dir / f"{i+1}"
             super().create_invocations(dry_run)
             self.output_dir = self.output_dir.parent
+            self.invocation_dir = self.invocation_dir.parent
 
+def parse_args():
 
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@', description='create invocation for MCA and Original data')
+    parser.add_argument('--input_dir', type=str, help='path to the input directory')
+    parser.add_argument('--output_dir', type=str, help='path to the output directory')
+    parser.add_argument('--invocation_dir', type=str, default=pathlib.Path().cwd()/'invocations', help='path to invocation directory')
+    parser.add_argument('--n_mca', type=int, default=10, help='number of MCA repettions')
+    parser.add_argument('--dry-run', action='store_true', help='Dry run')
+    # parser.add_argument('--dofs', type=int, nargs='+', default=[12], help='Degrees of freedom for flirt')
+    parser.add_argument('--input_subjects', type=str, default=None, help='input subjects paths')
+  
+    return parser.parse_args()
 
+if __name__ == '__main__':
+
+    args = parse_args()
+    
+    input_dir = pathlib.Path(args.input_dir)
+    output_dir = pathlib.Path(args.output_dir)
+    invocation_dir = pathlib.Path(args.invocation_dir)
+    sub_dirs = read_subjects_paths(args.input_subjects)
+    input_subjects = args.input_subjects 
+    
+    robustfov_input_dir = input_dir
+    robustfov_output_dir = output_dir / 'preprocess'
+    robustfov_invocation_dir = invocation_dir / 'robustfov'
+    bet_invocation_dir = invocation_dir / 'bet'
+    flirt_invocation_dir = invocation_dir / 'flirt'
+    bet_output_dir = robustfov_output_dir
+
+    subjects_map = create_subject_map(robustfov_input_dir, sub_dirs=sub_dirs)
+    subjects_map_after_preprocess = updating_subject_map(subjects_map, robustfov_output_dir)
+
+    ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
+    
+    BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+   
+    FLIRT_IEEE_preprocessing(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+    FLIRT_MCA_preprocessing(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca).create_invocations(dry_run=args.dry_run)
+    
