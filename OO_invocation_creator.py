@@ -7,16 +7,18 @@ from abc import ABC, abstractmethod
 
 BASELINE_SESSION = 'ses-BL'
 ANATOMICAL = 'anat'
-ACCUSITION = 'acq-sag3D'
+ACQUISITION = 'acq-sag3D'
 MODALITY= 'T1w'
 RUN = 'run-01'
 SUFFIX = '.nii.gz'
 MOSUF = MODALITY + SUFFIX
 ORIGINAL = 'ieee'
 MCA = 'mca'
+FLIRT = 'flirt'
+ANTS = 'ants'
 MAT = '.mat'
 
-PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_{RUN}_{MOSUF}'
+PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}'
 REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
 
 
@@ -24,10 +26,10 @@ def read_subjects_paths(file_path:str)->List[str]:
     """
     Read a file containing paths to subjects' directories and returns a list of paths.
 
-    Paremeters:
+    Paremeter:
         file_path: str, path to the file containing the subjects' paths.
 
-    Returns:
+    Return:
         List[str]: A list of subjects' paths.
     """
 
@@ -56,7 +58,7 @@ def find_scans(input_dir:pathlib.Path, pattern=PATTERN, sub_dirs:List[str]=None)
         return list(input_dir.glob(str(pattern)))
     else:
         scan_paths = []
-        pattern = pathlib.Path('') / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACCUSITION}_{RUN}_{MOSUF}'
+        pattern = pathlib.Path('') / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}'
 
         for sub_dir in sub_dirs:
             scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
@@ -281,24 +283,44 @@ class ROBUSTFOV_preprocessing(Preprocessing):
         return invocation
     
 
-class FLIRT_preprocessing(Preprocessing):
+class Registration(Preprocessing):
 
     def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
         """
-        Initializes the FLIRT preprocessing class.
+        Initializes the preprocessing class.
 
         Parameters:
             subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
             output_dir (pathlib.Path): The directory where the output FLIRT files will be saved.
             invocation_dir (pathlib.Path): The directory where the invocations will be saved.
             ref (str): The reference file for FLIRT. Default is MNI152.
-            dof (int): The degrees of freedom for FLIRT. Default is 12.
+            dof (int): The degrees of freedom. Default is 12.
         """
         super().__init__(subjects_maps, output_dir, invocation_dir)
         self.ref = ref
         self.dofs = dof
 
+    
+class FLIRT_IEEE_registration(Registration):
+
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
+        """
+        Initializes the FLIRT preprocessing class for IEEE standard with subject maps, output directory, invocation directory, reference image, and degrees of freedom.
+        
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output FLIRT IEEE files will be saved.
+            invocation_dir (pathlib.Path): The directory where the FLIRT IEEE invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
+        """
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+       
+        self.output_dir = self.output_dir / FLIRT/ f'anat-{str(self.dofs)}dofs' / ORIGINAL
+        self.invocation_dir = self.invocation_dir / FLIRT / f'anat-{str(self.dofs)}dofs' / ORIGINAL
+
     def create_single_subject_invocation(self, subject:Dict)->Dict:
+
         """
         Generates and returns the FLIRT preprocessing invocation for a single subject.
 
@@ -321,34 +343,16 @@ class FLIRT_preprocessing(Preprocessing):
         'dof': self.dofs
         }
         return invocation
-    
-class FLIRT_IEEE_preprocessing(FLIRT_preprocessing):
-
-    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12):
-        """
-        Initializes the FLIRT preprocessing class for IEEE standard with subject maps, output directory, invocation directory, reference image, and degrees of freedom.
-        
-        Parameters:
-            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
-            output_dir (pathlib.Path): The directory where the output FLIRT IEEE files will be saved.
-            invocation_dir (pathlib.Path): The directory where the FLIRT IEEE invocation files will be written.
-            ref (str): Path to the reference image against which registration is performed.
-            dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
-        """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
-       
-        self.output_dir = self.output_dir / f'anat-{str(self.dofs)}dofs' / ORIGINAL
-        self.invocation_dir = self.invocation_dir / f'anat-{str(self.dofs)}dofs' / ORIGINAL
 
     def create_invocations(self, dry_run: bool = False):
         return super().create_invocations(dry_run)
     
 
-class FLIRT_MCA_preprocessing(FLIRT_preprocessing):
+class FLIRT_MCA_registration(FLIRT_IEEE_registration):
 
     def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, n_mca:int=10, dof:int=12):
         """
-        Initializes the FLIRT preprocessing class for MCA (Monte Carlo Arithmetic) with subject maps, output directory, invocation directory, reference image, degrees of freedom, and the number of MCA iterations.
+        Initializes the FLIRT registration class for MCA (Monte Carlo Arithmetic) with subject maps, output directory, invocation directory, reference image, degrees of freedom, and the number of MCA iterations.
         
         Parameters:
             subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
@@ -360,13 +364,13 @@ class FLIRT_MCA_preprocessing(FLIRT_preprocessing):
         """
         super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
         self.n_mca = n_mca
-        self.output_dir = self.output_dir / f'anat-{str(self.dofs)}dofs' / MCA
-        self.invocation_dir = self.invocation_dir / f'anat-{str(self.dofs)}dofs' / MCA
+        self.output_dir = self.output_dir.parent / MCA
+        self.invocation_dir = self.invocation_dir.parent / MCA
 
 
     def create_invocations(self, dry_run: bool = False):
         """
-        Generates and writes the FLIRT MCA preprocessing invocations JSON files for each subject
+        Generates and writes the FLIRT MCA registration invocations JSON files for each subject
         across specified neumebr of MCA iterations. Each iteration potentially generates a slightly different
         output file due to the randomness of the MCA algorithm.
 
@@ -384,6 +388,89 @@ class FLIRT_MCA_preprocessing(FLIRT_preprocessing):
             super().create_invocations(dry_run)
             self.output_dir = self.output_dir.parent
             self.invocation_dir = self.invocation_dir.parent
+
+class ANTS_IEEE_registration(Registration):
+     
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, dof:int=12, t:str='a'):
+        """
+        Initializes the ANTS registration class for IEEE standard with subject maps, output directory, invocation directory, reference image, and degrees of freedom.
+        
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output ANTS IEEE files will be saved.
+            invocation_dir (pathlib.Path): The directory where the ANTS IEEE invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
+            t (str): transformation mode 
+        """
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        self.t = t
+        self.output_dir = self.output_dir / ANTS / f'anat-{str(self.dofs)}dofs' / ORIGINAL
+        self.invocation_dir = self.invocation_dir / ANTS / f'anat-{str(self.dofs)}dofs' / ORIGINAL
+
+    def create_single_subject_invocation(self, subject:Dict)->Dict:
+
+        """
+        Generates and returns the ANTS preprocessing invocation for a single subject.
+
+        Parameters:
+            subject (Dict): A dictionary containing details of the subject, including the input path.
+
+        Returns:
+            Dict: FLIRT invocation parameters including input file, reference file, output prefix, and registration mode.
+        """
+
+        in_file = subject['input_path']
+        output_prefix = self.output_dir / f"{subject['subject']}_{subject['session']}"
+        
+        invocation = {
+        'moving': str(in_file),
+        'fixed': str(self.ref),
+        'output_prefix': str(output_prefix),
+        'transform_type': self.t
+        }
+        return invocation
+
+class ANTS_MCA_registration(ANTS_IEEE_registration):
+    def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, n_mca:int=10, dof:int=12, t:str="a"):
+        """
+        Initializes the ANTS registration class for MCA (Monte Carlo Arithmetic) with subject maps, output directory, invocation directory, reference image, degrees of freedom, and the number of MCA iterations.
+        
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output ANTS MCA files will be saved.
+            invocation_dir (pathlib.Path): The directory where the ANTS MCA invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            n_mca (int): Number of MCA iterations to be performed for the preprocessing step.
+            dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
+            t (str): transformation mode 
+        """
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, t)
+        self.n_mca = n_mca
+        self.output_dir = self.output_dir.parent / MCA
+        self.invocation_dir = self.invocation_dir.parent / MCA
+
+
+    def create_invocations(self, dry_run: bool = False):
+        """
+        Generates and writes the ANTS MCA registration invocations JSON files for each subject
+        across specified neumebr of MCA iterations. Each iteration potentially generates a slightly different
+        output file due to the randomness of the MCA algorithm.
+
+        Parameters:
+            dry_run (bool): If True, the invocations are printed to the console instead of being written to files.
+        
+        Returns:
+            None
+        """
+
+        for i in range(self.n_mca):
+
+            self.output_dir = self.output_dir / f"{i+1}"
+            self.invocation_dir = self.invocation_dir / f"{i+1}"
+            super().create_invocations(dry_run)
+            self.output_dir = self.output_dir.parent
+            self.invocation_dir = self.invocation_dir.parent   
 
 def parse_args():
 
@@ -422,7 +509,7 @@ if __name__ == '__main__':
     
     BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
    
-    FLIRT_IEEE_preprocessing(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
+    FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
 
-    FLIRT_MCA_preprocessing(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca).create_invocations(dry_run=args.dry_run)
+    FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca).create_invocations(dry_run=args.dry_run)
     
