@@ -1,24 +1,6 @@
 [flake8]
-extend-ignore = 
-    E203,
-    W293,
-    W291,
-    E501,
-    E231,
-    E252,
-    E302,
-    E122,
-    E225,
-    E122,
-    E261,
-    E221,
-    E262,
-    E303,
-    E305,
-    E117,
-    W292
-    
 exclude =
     .git,
     __pycache__
 max-complexity = 10
+max-line-length = 120
