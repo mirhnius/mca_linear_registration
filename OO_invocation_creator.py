@@ -19,7 +19,7 @@ ANTS = 'ants'
 MAT = '.mat'
 
 PATTERN = pathlib.Path('') / 'sub-*' / BASELINE_SESSION / ANATOMICAL / f'sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}'
-REF = pathlib.Path.cwd() / "tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz"
+REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
 
 
 def read_subjects_paths(file_path:str)->List[str]:
@@ -431,6 +431,9 @@ class ANTS_IEEE_registration(Registration):
         }
         return invocation
 
+    def create_invocations(self, dry_run: bool = False):
+        return super().create_invocations(dry_run)
+    
 class ANTS_MCA_registration(ANTS_IEEE_registration):
     def __init__(self, subjects_maps:Dict, output_dir:pathlib.Path, invocation_dir:pathlib.Path, ref:str=REF, n_mca:int=10, dof:int=12, t:str="a"):
         """
@@ -505,11 +508,13 @@ if __name__ == '__main__':
     subjects_map = create_subject_map(robustfov_input_dir, sub_dirs=sub_dirs)
     subjects_map_after_preprocess = updating_subject_map(subjects_map, robustfov_output_dir)
 
-    ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
+    # ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
     
-    BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+    # BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
    
-    FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
+    # FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
 
-    FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca).create_invocations(dry_run=args.dry_run)
+    # FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca).create_invocations(dry_run=args.dry_run)
     
+    ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
+    ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
