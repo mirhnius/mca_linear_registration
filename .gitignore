@@ -15,10 +15,6 @@ participants.tsv
 temp*.sh
 .docker*
 .venv
-<<<<<<< HEAD
 __pycache__
-=======
-__pycache__
+*.mat
 
-
->>>>>>> 1ce728e0ccdbe0842d20168c43c7b2197356fc15
