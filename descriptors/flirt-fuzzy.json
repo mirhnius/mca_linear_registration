@@ -464,7 +464,7 @@
             "command-line-flag": "-omat",
             "description": "Output Matrix file",
             "optional" : false
-        }	
+        }
     ],
     "output-files": [
         {

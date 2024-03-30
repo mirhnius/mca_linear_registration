@@ -18,6 +18,6 @@ parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-glatard/b
 # parallel "time bosh exec launch --imagepath fuzzy_fsl_6.0.4_latest.sif ./flirt-fuzzy.json ./{1}" ::: ./invocations_HC/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
 
 #yohanchatelain-ants-v2.5.0-fuzzy.simg
-#antsx-ants-v2.5.0.simg  
+#antsx-ants-v2.5.0.simg
 # glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg
 # vnmd_fsl_6.0.4-2021-04-22-ac3439c3920c.simg

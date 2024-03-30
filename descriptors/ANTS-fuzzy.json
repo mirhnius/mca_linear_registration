@@ -1,12 +1,11 @@
 {
-    "name": "ANTs",
-    "description": "ANTs",
-    "author": "yohanchatelain", 
+    "name": "ANTs-fuzzy",
+    "description": "ANTs-fuzzy",
     "tool-version": "v2.5.0",
     "schema-version": "0.5",
     "command-line": "antsRegistrationSyN.sh [DIMENSION] [FIXED] [MOVING] [OUTPUT] [NUM_THREADS] [INITIAL_TRANSFORM] [TRANSFORM_TYPE] [RADIUS] [SPLINE] [GRADIENT_STEP] [MASKS] [PRECISION] [HISTOGRAM_MATCHING] [REPRO_MODE] [COLLAPSE_OUTPUT_TRANSFORM] [RANDOM_SEED]",
     "container-image": {
-        "image": "antsx/ants:v2.5.0",
+        "image": "yohanchatelain/ants:v2.5.0-fuzzy",
         "index": "docker://",
         "type": "singularity"
     },
@@ -189,7 +188,7 @@
             "command-line-flag": "-e",
             "value-key": "[RANDOM_SEED]"
         }
-        
+
     ],
     "tags": {
         "domain": ["neuroscience", "image-registration"]
