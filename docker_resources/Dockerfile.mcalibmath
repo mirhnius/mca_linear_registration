@@ -4,7 +4,7 @@ FROM vnmd/fsl_6.0.4
 # Install Python 3
 RUN apt-get update && apt-get install -y python3
 
-RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr} 
+RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr}
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /opt/mca-libmath/fast/libmath.so /opt/mca-libmath/fast/libmath.so
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
