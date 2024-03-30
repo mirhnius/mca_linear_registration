@@ -12,7 +12,7 @@ FROM ${1}
 # Install Python 3
 RUN apt-get update && apt-get install -y python3
 
-RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr} 
+RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr}
 COPY --from=${2} /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
 COPY --from=${2} /opt/mca-libmath/fast/libmath.so /opt/mca-libmath/fast/libmath.so
 COPY --from=${2} /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
@@ -59,4 +59,4 @@ fi
 
 echo "Build fuzzy-libmath (from ${FUZZY_IMAGE}) for ${BASE_IMAGE} as ${TAG}"
 generate_docker $BASE_IMAGE $FUZZY_IMAGE
-build_docker $TAG 
+build_docker $TAG

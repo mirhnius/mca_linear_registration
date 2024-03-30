@@ -31,4 +31,3 @@ while read -r DIR; do
     scp -r "${USER}@${SERVER}:${REMOTE_PATH}/${DIR}" "${LOCAL_PATH}"
 
 done < "${FILE}"
-

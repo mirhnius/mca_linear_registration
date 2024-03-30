@@ -82,7 +82,7 @@
         "path-template": "[MATRIX_OUTPUT_FILE].mat",
         "path-template-stripped-extensions": [
           ".mat"
-        ]        
+        ]
       }
     ],
     "container-image": {
@@ -97,4 +97,3 @@
     },
     "tool-version": "6.0.4"
   }
-  
