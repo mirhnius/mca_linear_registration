@@ -188,7 +188,7 @@
             "command-line-flag": "-e",
             "value-key": "[RANDOM_SEED]"
         }
-        
+
     ],
     "tags": {
         "domain": ["neuroscience", "image-registration"]

@@ -11,10 +11,9 @@ anat*
 *.txt
 *.nii.gz
 outputs*
-participants.tsv  
+participants.tsv
 temp*.sh
 .docker*
 .venv
 __pycache__
 *.mat
-
