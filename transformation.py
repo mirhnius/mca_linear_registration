@@ -12,7 +12,7 @@ def get_matrices_paths(parent_dir, pattern=PATTERN, n_mca=10):
         parent_dir = Path(parent_dir)
     ieee_dir = parent_dir / IEEE
     ieee_paths = list(ieee_dir.glob(pattern))
-    subjects = [l.name.removesuffix(".mat") for l in ieee_paths]
+    subjects = [path.name.removesuffix(".mat") for path in ieee_paths]
 
     paths = {}
     for sub, sub_path in zip(subjects, ieee_paths):
