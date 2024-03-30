@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 from pathlib import Path
 
 IEEE = "ieee"
@@ -31,6 +32,21 @@ def get_matrices_paths(parent_dir, pattern=PATTERN, n_mca=10):
     return paths
 
 
+def is_matlab_file(filename):
+
+    try:
+        scipy.io.whosmat(filename)
+        return True
+    except ValueError:
+        return False
+
+
+# def loader(filename):
+
+#     if is_matalb_file(filename):#maybe add ".mat"
+#         scipy.io  cmplete this late to avoid duplication
+
+
 def get_matrices(paths):
 
     matrices = {}
@@ -38,12 +54,22 @@ def get_matrices(paths):
 
         mat_list = []
         for p in paths[sub][MCA]:
-            mat_list.append(np.loadtxt(p))
+            if is_matlab_file(p):
+                mat = scipy.io.loadmat(p)
+                mat = next(iter(mat.values()))
+                mat_list.append(mat.reshape((-1, 4)))
+            else:
+                mat_list.append(np.loadtxt(p))
         arr = np.array(mat_list)
         matrices[sub] = {MCA: arr}
 
         p_ieee = paths[sub][IEEE]
-        matrices[sub][IEEE] = np.loadtxt(p_ieee)
+        if is_matlab_file(p_ieee):
+            mat = scipy.io.loadmat(p_ieee)
+            mat = next(iter(mat.values()))
+            matrices[sub][IEEE] = mat.reshape((-1, 4))
+        else:
+            matrices[sub][IEEE] = np.loadtxt(p_ieee)
 
     return matrices
 
