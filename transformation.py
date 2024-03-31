@@ -7,8 +7,31 @@ MCA = "mca"
 PATTERN = "*.mat"
 
 
-# I should refactor this because it assumes all ieee runs won't fail
-# which might not be the case
+def create_subject_list(inputfile, outputfile):
+    """
+    This function receives a text file including the subjects' list
+    and return the subjects' IDs as a text file.
+
+    Parameter:
+        inputfile: The input file's path.
+        outputfile: The output file's path.
+
+    Return:
+        None
+
+    """
+
+    dir_names = []
+    with open(inputfile, "r") as infile:
+        for line in infile:
+            path = Path(line.rstrip())  # removing the new line character
+            dir_names.append(path.name + "\n")
+
+    with open(outputfile, "w") as outfile:
+        for dir in dir_names:
+            outfile.write(dir)
+
+
 def is_matlab_file(filename):
     """
     Check if a file is a matlab file.
@@ -91,7 +114,7 @@ def load_text_file(filename: str):
         return mat
 
     except Exception as e:
-        raise RuntimeError(f"Error loading2 {filename}: {e}")
+        raise RuntimeError(f"Error loading2 {filename}: {e}") from e
 
 
 def load_file(filename: str):
@@ -148,8 +171,10 @@ def get_matrices(paths: dict):
 
 
 if __name__ == "__main__":
-    subfile = Path().cwd() / "sub_list_test.txt"
-    test_path = Path().cwd() / "pipline" / "hc" / "outputs" / "ants" / "anat-12dofs"
-    paths = get_matrices_paths(test_path, subfile, pattern="_ses-BL0GenericAffine")
-    m, e = get_matrices(paths)
-    print(e)
+    create_subject_list(Path("./PD_selected_paths.txt"), "./PD_selected_subjects.txt")
+    create_subject_list(Path("./HC_selected_paths.txt"), "./HC_selected_subjects.txt")
+    # subfile = Path().cwd() / "sub_list_test.txt"
+    # test_path = Path().cwd() / "pipline" / "hc" / "outputs" / "ants" / "anat-12dofs"
+    # paths = get_matrices_paths(test_path, subfile, pattern="_ses-BL0GenericAffine")
+    # m, e = get_matrices(paths)
+    # print(e)
