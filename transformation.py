@@ -7,75 +7,139 @@ MCA = "mca"
 PATTERN = "*.mat"
 
 
-def get_matrices_paths(parent_dir, pattern=PATTERN, n_mca=10):
+# I should refactor this because it assumes all ieee runs won't fail
+# which might not be the case
+def is_matlab_file(filename):
+    """
+    Check if a file is a matlab file.
+    """
+    try:
+        scipy.io.whosmat(filename)
+        return True
+    except Exception:
+        return False
 
-    if isinstance(parent_dir, str):
-        parent_dir = Path(parent_dir)
-    ieee_dir = parent_dir / IEEE
-    ieee_paths = list(ieee_dir.glob(pattern))
-    subjects = [l.name.removesuffix(".mat") for l in ieee_paths]
 
+def get_matrices_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, ext: str = ".mat"):
+    """
+    Generate IEEE and MCA paths based on a list of subjects and read from a file.
+
+    Parameters:
+        parent_dir(Path): The parent dirctory containing the IEEE and MCA directories.
+        subjects_file(Path): A file containing the list of subjects.
+        n_mca(int): The number of MCA directories.
+        ext(str): The file extension.
+
+    Returns:
+        A directory with subject IDs as keys, ech containing paths to respective IEEE and MCA files.
+    """
+    # Read the subjects from the file
+    subjects = []
+    with open(subjects_file, "r") as file:
+        for line in file:
+            subjects.append(line.strip())
+
+    # Generate the paths
     paths = {}
-    for sub, sub_path in zip(subjects, ieee_paths):
-        paths[sub] = {IEEE: str(sub_path)}
-        paths[sub][MCA] = []
+    for sub in subjects:
+        ieee_path = parent_dir / IEEE / f"{sub}{ext}"
+        mca_paths = [parent_dir / MCA / str(i) / f"{sub}{ext}" for i in range(1, n_mca + 1)]
 
-    mca_dir = parent_dir / MCA
-    for i in range(1, n_mca + 1):
-        this_itr_dir = mca_dir / str(i)
-        mca_paths = list(this_itr_dir.glob(pattern))
-        for sub_path in mca_paths:
-            sub = sub_path.name.removesuffix(".mat")
-            if sub in paths:
-                paths[sub][MCA].append(str(sub_path))
+        paths[sub] = {IEEE: str(ieee_path), MCA: [str(p) for p in mca_paths]}
 
     return paths
 
 
-def is_matlab_file(filename):
+def load_matlab_file(filename: str):
+    """
+    Load a matlab file and reshape it to affine matrix.
 
+    Parameters:
+        filename(str): The path to the file.
+
+    Return:
+        The affine matrix.
+    """
+    new_row = np.array([0, 0, 0, 1])
     try:
-        scipy.io.whosmat(filename)
-        return True
-    except ValueError:
-        return False
+        mat = scipy.io.loadmat(filename)
+        mat = next(iter(mat.values())).reshape((-1, 4))
+        if mat.shape == (3, 4):  # adding the row to shape (4, 4) matrix
+            mat = np.vstack((mat, new_row))
+        return mat
+    except Exception as e:
+        raise RuntimeError(f"Error loading {filename}: {e}") from e
 
 
-# def loader(filename):
+def load_text_file(filename: str):
+    """
+    Load a text file.
 
-#     if is_matalb_file(filename):#maybe add ".mat"
-#         scipy.io  cmplete this late to avoid duplication
+    Parameters:
+        filename(str): The path to the file.
+
+    Return:
+        The affine matrix.
+    """
+    new_row = np.array([0, 0, 0, 1])
+    try:
+
+        mat = np.loadtxt(filename).reshape(-1, 4)
+        if mat.shape == (3, 4):  # adding the row to shape (4, 4) matrix
+            mat = np.vstack((mat, new_row))
+        return mat
+
+    except Exception as e:
+        raise RuntimeError(f"Error loading {filename}: {e}")
 
 
-def get_matrices(paths):
+def load_file(filename: str):
+    """
+    Load a file, either matlab or text.
 
+    Parameters:
+        filename(str): The path to the file.
+
+    Return:
+        The affine matrix.
+    """
+    if not Path(filename).exists():
+        raise FileNotFoundError(f"{filename} not found.")
+
+    if is_matlab_file(filename):
+        return load_matlab_file(filename)
+    return load_text_file(filename)
+
+
+def get_matrices(paths: dict):
+    """
+    Load the matrices from the paths.
+
+    Parameters:
+        paths(dict): The paths to the matrices.
+
+    Returns:
+        A dictionary containing the matrices.
+        errors: A list of errors encountered during loading.
+    """
     matrices = {}
-    for sub in paths.keys():
+    errors = []
 
-        mat_list = []
-        for p in paths[sub][MCA]:
-            if is_matlab_file(p):
-                mat = scipy.io.loadmat(p)
-                mat = next(iter(mat.values()))
-                mat_list.append(mat.reshape((-1, 4)))
-            else:
-                mat_list.append(np.loadtxt(p))
-        arr = np.array(mat_list)
-        matrices[sub] = {MCA: arr}
+    for sub, path_info in paths.items():
+        try:
+            matrices[sub] = {IEEE: load_file(path_info[IEEE])}
+        except (FileNotFoundError, RuntimeError) as e:
+            errors.append(f"Error loading {path_info[IEEE]}: {e}")
+            continue
 
-        p_ieee = paths[sub][IEEE]
-        if is_matlab_file(p_ieee):
-            mat = scipy.io.loadmat(p_ieee)
-            mat = next(iter(mat.values()))
-            matrices[sub][IEEE] = mat.reshape((-1, 4))
-        else:
-            matrices[sub][IEEE] = np.loadtxt(p_ieee)
+        mca_matrices = []
+        for mca_path in path_info[MCA]:
+            try:
+                mca_matrices.append(load_file(mca_path))
+            except (FileNotFoundError, RuntimeError) as e:
+                errors.append(f"Error loading {mca_path}: {e}")
+                continue
+        if mca_matrices:
+            matrices[sub][MCA] = np.array(mca_matrices)
 
     return matrices
-
-
-if __name__ == "__main__":
-    dir = Path("./outputs/anat-12dofs")
-    paths = get_matrices_paths(dir)
-    # n_mca = 10
-    n_subjects = len(paths)
