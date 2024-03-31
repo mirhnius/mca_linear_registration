@@ -1,6 +1,7 @@
 import json
 import argparse
 import pathlib
+from copy import deepcopy
 from typing import Dict, List
 from abc import ABC, abstractmethod
 
@@ -55,17 +56,17 @@ def find_scans(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[str] = N
 
     if sub_dirs is None:
         return list(input_dir.glob(str(pattern)))
-    else:
-        scan_paths = []
-        pattern = pathlib.Path("") / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
 
-        for sub_dir in sub_dirs:
-            scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
+    scan_paths = []
+    pattern = pathlib.Path("") / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
 
-            if len(list(pathlib.Path(sub_dir).glob(str(pattern)))) == 0:
-                print(sub_dir)
+    for sub_dir in sub_dirs:
+        scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
 
-        return scan_paths
+        if len(list(pathlib.Path(sub_dir).glob(str(pattern)))) == 0:
+            print(sub_dir)
+
+    return scan_paths
 
 
 def scan_filed_dict(scan_path: pathlib.Path) -> Dict:
@@ -133,11 +134,13 @@ def updating_subject_map(subjects_map: Dict, input_dir: pathlib.Path) -> Dict:
         Dict: A dictionary containing the subjects and their updated scan paths.
     """
 
-    for subject in subjects_map:
-        for session in subjects_map[subject]:
-            subjects_map[subject][session]["input_path"] = str(input_dir / f"{subject}_{session}{SUFFIX}")
+    subjects_map_copy = deepcopy(subjects_map)
 
-    return subjects_map
+    for subject in subjects_map_copy:
+        for session in subjects_map_copy[subject]:
+            subjects_map_copy[subject][session]["input_path"] = str(input_dir / f"{subject}_{session}{SUFFIX}")
+
+    return subjects_map_copy
 
 
 class Preprocessing(ABC):
@@ -252,8 +255,7 @@ class BET_preprocessing(Preprocessing):
         in_file = subject["input_path"]
         out_file = self.output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
 
-        invocation = {"infile": str(in_file), "maskfile": str(out_file), "fractional_intensity": self.f}  # output
-        return invocation
+        return {"infile": str(in_file), "maskfile": str(out_file), "fractional_intensity": self.f}  # output
 
 
 class ROBUSTFOV_preprocessing(Preprocessing):
@@ -274,8 +276,7 @@ class ROBUSTFOV_preprocessing(Preprocessing):
         in_file = subject["input_path"]
         out_file = self.output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
 
-        invocation = {"in_file": str(in_file), "out_roi": str(out_file)}
-        return invocation
+        return {"in_file": str(in_file), "out_roi": str(out_file)}
 
 
 class Registration(Preprocessing):
@@ -328,14 +329,13 @@ class FLIRT_IEEE_registration(Registration):
         out_file = self.output_dir / f"{subject['subject']}_{subject['session']}{SUFFIX}"
         out_matrix_file = self.output_dir / f"{subject['subject']}_{subject['session']}{MAT}"
 
-        invocation = {
+        return {
             "in_file": str(in_file),
             "out_filename": str(out_file),
             "reference": str(self.ref),
             "out_matrix_filename": str(out_matrix_file),
             "dof": self.dofs,
         }
-        return invocation
 
     def create_invocations(self, dry_run: bool = False):
         return super().create_invocations(dry_run)
@@ -537,5 +537,12 @@ if __name__ == "__main__":
     # FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca
     # ).create_invocations(dry_run=args.dry_run)
 
-    ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
-    ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
+    # ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
+    # ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
+
+    ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
+        False
+    )
+    ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
+        False
+    )
