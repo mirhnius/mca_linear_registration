@@ -20,7 +20,7 @@ def is_matlab_file(filename):
         return False
 
 
-def get_matrices_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, ext: str = ".mat"):
+def get_matrices_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: str = None, ext: str = ".mat"):
     """
     Generate IEEE and MCA paths based on a list of subjects and read from a file.
 
@@ -28,6 +28,7 @@ def get_matrices_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, e
         parent_dir(Path): The parent dirctory containing the IEEE and MCA directories.
         subjects_file(Path): A file containing the list of subjects.
         n_mca(int): The number of MCA directories.
+        pattern(str): The file name pattern.
         ext(str): The file extension.
 
     Returns:
@@ -42,8 +43,8 @@ def get_matrices_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, e
     # Generate the paths
     paths = {}
     for sub in subjects:
-        ieee_path = parent_dir / IEEE / f"{sub}{ext}"
-        mca_paths = [parent_dir / MCA / str(i) / f"{sub}{ext}" for i in range(1, n_mca + 1)]
+        ieee_path = parent_dir / IEEE / f"{sub}{pattern}{ext}"
+        mca_paths = [parent_dir / MCA / str(i) / f"{sub}{pattern}{ext}" for i in range(1, n_mca + 1)]
 
         paths[sub] = {IEEE: str(ieee_path), MCA: [str(p) for p in mca_paths]}
 
@@ -68,7 +69,7 @@ def load_matlab_file(filename: str):
             mat = np.vstack((mat, new_row))
         return mat
     except Exception as e:
-        raise RuntimeError(f"Error loading {filename}: {e}") from e
+        raise RuntimeError(f"Error loading1 {filename}: {e}") from e
 
 
 def load_text_file(filename: str):
@@ -90,7 +91,7 @@ def load_text_file(filename: str):
         return mat
 
     except Exception as e:
-        raise RuntimeError(f"Error loading {filename}: {e}")
+        raise RuntimeError(f"Error loading2 {filename}: {e}")
 
 
 def load_file(filename: str):
@@ -129,7 +130,7 @@ def get_matrices(paths: dict):
         try:
             matrices[sub] = {IEEE: load_file(path_info[IEEE])}
         except (FileNotFoundError, RuntimeError) as e:
-            errors.append(f"Error loading {path_info[IEEE]}: {e}")
+            errors.append(f"Error loading3 {path_info[IEEE]}: {e}")
             continue
 
         mca_matrices = []
@@ -137,9 +138,18 @@ def get_matrices(paths: dict):
             try:
                 mca_matrices.append(load_file(mca_path))
             except (FileNotFoundError, RuntimeError) as e:
-                errors.append(f"Error loading {mca_path}: {e}")
+                errors.append(f"Error loading4 {mca_path}: {e}")
                 continue
         if mca_matrices:
-            matrices[sub][MCA] = np.array(mca_matrices)
+            # matrices[sub][MCA] = np.array(mca_matrices) refactor the nb later to use this
+            matrices[sub][MCA] = mca_matrices
 
-    return matrices
+    return matrices, errors
+
+
+if __name__ == "__main__":
+    subfile = Path().cwd() / "sub_list_test.txt"
+    test_path = Path().cwd() / "pipline" / "hc" / "outputs" / "ants" / "anat-12dofs"
+    paths = get_matrices_paths(test_path, subfile, pattern="_ses-BL0GenericAffine")
+    m, e = get_matrices(paths)
+    print(e)
