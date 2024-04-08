@@ -7,31 +7,34 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: check-ast
+        exclude: \.sh$
     -   id: check-case-conflict
+        exclude: \.sh$
     -   id: check-json
+        exclude: \.sh$
     -   id: check-merge-conflict
+        exclude: \.sh$
     -   id: check-toml
+        exclude: \.sh$
     -   id: check-yaml
+        exclude: \.sh$
     -   id: end-of-file-fixer
+        exclude: \.sh$
     -   id: mixed-line-ending
+        exclude: \.sh$
     -   id: trailing-whitespace
+        exclude: \.sh$
 
 -   repo: https://github.com/psf/black-pre-commit-mirror
     rev: 24.3.0
     hooks:
     -   id: black
         args: [--config, pyproject.toml]
-
-# -   repo: https://github.com/codespell-project/codespell
-#     rev: v2.2.6
-#     hooks:
-#     -   id: codespell
-#         args: [--toml, pyproject.toml]
-#         additional_dependencies: [tomli]
-
+        exclude: \.sh$
 
 -   repo: https://github.com/pyCQA/flake8
     rev: 7.0.0
     hooks:
     -   id: flake8
         args: [--config, .flake8, --verbose]
+        exclude: \.sh$
