@@ -17,6 +17,6 @@ temp*.sh
 .venv
 __pycache__
 pipline
-
+original_data
 !PD_selected_subjects.txt
 !HC_selected_subjects.txt
