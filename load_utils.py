@@ -43,7 +43,7 @@ def is_matlab_file(filename):
         return False
 
 
-def get_matrices_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: str = None, ext: str = ".mat"):
+def get_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: str = None, ext: str = ".mat"):
     """
     Generate IEEE and MCA paths based on a list of subjects and read from a file.
 
@@ -164,8 +164,7 @@ def get_matrices(paths: dict):
                 errors.append(f"Error loading4 {mca_path}: {e}")
                 continue
         if mca_matrices:
-            # matrices[sub][MCA] = np.array(mca_matrices) refactor the nb later to use this
-            matrices[sub][MCA] = mca_matrices
+            matrices[sub][MCA] = np.array(mca_matrices)
 
     return matrices, errors
 
@@ -175,6 +174,6 @@ if __name__ == "__main__":
     create_subject_list(Path("./HC_selected_paths.txt"), "./HC_selected_subjects.txt")
     # subfile = Path().cwd() / "sub_list_test.txt"
     # test_path = Path().cwd() / "pipline" / "hc" / "outputs" / "ants" / "anat-12dofs"
-    # paths = get_matrices_paths(test_path, subfile, pattern="_ses-BL0GenericAffine")
+    # paths = get_paths(test_path, subfile, pattern="_ses-BL0GenericAffine")
     # m, e = get_matrices(paths)
     # print(e)
