@@ -5,12 +5,50 @@ from PIL import Image
 import nibabel as nib
 from nilearn import plotting
 from nilearn.datasets import load_mni152_template
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 # add this to the load module
 def create_directory(path):
     if not path.exists():
         path.mkdir(parents=True, exist_ok=True)
+
+
+def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None):
+
+    if labels is None:
+        labels = ["PD", "HC"]
+    dims = data_1.shape[-1]
+
+    if axis_labels is None:
+        axis_labels = ["Group"] * dims
+
+    for i in range(dims):
+        plt.subplot(1, dims, i + 1)
+
+        # Create a DataFrame for each dataset
+        df_1 = pd.DataFrame({axis_labels[i]: labels[0], "Value": data_1[:, i]})
+
+        df_2 = pd.DataFrame({axis_labels[i]: labels[1], "Value": data_2[:, i]})
+
+        # Concatenate the DataFrames
+        df = pd.concat([df_1, df_2])
+
+        # Create the swarmplot
+        sns.swarmplot(x=axis_labels[i], y="Value", data=df, palette=["orange", "blue"])
+        sns.boxplot(x=axis_labels[i], y="Value", data=df, color="white")
+        if i == 1 or (i == 0 and dims == 1):
+            plt.title(title)
+
+        # Set the y-axis limits
+        if ylim is not None:
+            plt.ylim(ylim)
+        else:
+            plt.ylim([df["Value"].min() * (0.99), df["Value"].max() * (1.03)])
+
+    plt.show()
 
 
 def generate_gif(images, filename, duration=200):
