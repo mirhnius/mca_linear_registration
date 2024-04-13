@@ -56,12 +56,23 @@ def print_metrics(groups, all_ravel):
         print("*********\n")
 
 
-def framewise_displacement(translation, angles, previous_translation=np.array([0, 0, 0]), previous_angles=np.array([0, 0, 0]), r=50):
+def framewise_displacement(translation, angles, previous_translation=np.array([0, 0, 0]), previous_angles=np.array([0, 0, 0]), r=50, mode="degree"):
 
-    angles = np.mod(angles, 2 * np.pi)
-    previous_angles = np.mod(previous_angles, 2 * np.pi)
+    try:
+        if mode == "degree":
+            # angles = np.mod(angles, 360)
+            # previous_angles = np.mod(previous_angles, 360)
+            d_rotation = (r * np.pi / 180) * np.sqrt(np.sum((angles - previous_angles) ** 2))
+        elif mode == "radian":
+            # angles = np.mod(angles, 2 * np.pi)
+            # previous_angles = np.mod(previous_angles, 2 * np.pi)
+            d_rotation = r * np.sqrt(np.sum((angles - previous_angles) ** 2))
+        else:
+            raise ValueError("Invalid mode. Mode should be either 'degree' or 'radian'.")
 
-    d_translation = np.sqrt(np.sum((translation - previous_translation) ** 2))
-    d_rotation = (r * np.pi / 180) * np.sqrt(np.sum((angles - previous_angles) ** 2))
+        d_translation = np.sqrt(np.sum((translation - previous_translation) ** 2))
 
-    return d_rotation + d_translation
+        return d_rotation + d_translation
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
