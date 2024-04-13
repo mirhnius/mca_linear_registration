@@ -52,7 +52,8 @@ def process_images(
                 annotate=annotate,
                 draw_cross=draw_cross,
                 title=f"{title_prefix} {image_path.parent.name}",
-                dim=dim**kwargs,
+                dim=dim,
+                **kwargs,
             )
             # template=template not sure about this
             display.add_contours(template, levels=levels, cut_coords=cut_coords, colors="r")
@@ -68,7 +69,7 @@ def make_gif(image_paths, subject_name, output_dir, duration=200, **kwargs):
 
     create_directory(output_dir)
     try:
-        output_dir_preprocess = output_dir / "preprocess"
+        output_dir_preprocess = output_dir / f"preprocess_{subject_name}"
         create_directory(output_dir_preprocess)
         process_images(image_paths, subject_name, output_dir_preprocess, **kwargs)
 
