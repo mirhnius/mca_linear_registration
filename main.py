@@ -1,6 +1,7 @@
 # import metrics_utils
 import load_utils
 from plot_utils import plotter
+import metrics_utils
 from copy import deepcopy
 import numpy as np
 
@@ -32,13 +33,13 @@ def transformation_dictionary_to_arrays(mat_dic, n_mca=10):
     return scales_mca, translations_mca, angles_mca, shears_mca
 
 
-def basic_info_plotter(group1, group2, software, figure_size=(9, 4), y_lim_mean=None, y_lim_sd=None, **kwargs):
+def basic_info_plotter(group1, group2, software, variable, figure_size=(9, 4), y_lim_mean=None, y_lim_sd=None, path=None, **kwargs):
 
     plt.figure(figsize=figure_size)
-    plotter(np.mean(group1, axis=1), np.mean(group2, axis=1), f"Scales Mean {software}", y_lim_mean, kwargs)
+    plotter(np.mean(group1, axis=1), np.mean(group2, axis=1), title=f"{variable} Mean {software}", ylim=y_lim_mean, path=path, **kwargs)
 
     plt.figure(figsize=figure_size)
-    plotter(np.std(group1, axis=1), np.std(group2, axis=1), f"Scales SD {software}", y_lim_sd, kwargs)
+    plotter(np.std(group1, axis=1), np.std(group2, axis=1), title=f"{variable} SD {software}", ylim=y_lim_sd, path=path, **kwargs)
 
 
 def copy_and_remove_keys(original_dict, keys_to_copy):
@@ -49,20 +50,32 @@ def copy_and_remove_keys(original_dict, keys_to_copy):
         new_dict[key] = dict_copy[key]
         dict_copy.pop(key)
 
-    return new_dict, dict_copy
+    return dict_copy, new_dict
 
 
 if __name__ == "__main__":
 
-    software = "FSL"
-    failed_subjects_HC = []
+    # software = "FSL"
+    # failed_subjects_HC = ["sub-116230", "sub-4079", "sub-3620"]
+    # failed_subjects_PD = ["sub-3709", "sub-3700", "sub-3403"]
+    # path = Path().cwd() / "outputs_plots" / "diagrams" / software
+
+    # path_PD = Path("./pipline/pd/outputs/anat-12dofs")
+    # path_HC = Path("./pipline/hc/outputs/anat-12dofs")
+
+    # paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL")
+    # paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL")
+
+    software = "ANTS"
+    failed_subjects_HC = ["sub-116230", "sub-3620"]
     failed_subjects_PD = []
+    path = Path().cwd() / "outputs_plots" / "diagrams" / software
 
-    path_PD = Path("./pipline/pd/outputs/anat-12dofs")
-    path_HC = Path("./pipline/hc/outputs/anat-12dofs")
+    path_PD = Path("./pipline/pd/outputs/ants/anat-12dofs")
+    path_HC = Path("./pipline/hc/outputs/ants/anat-12dofs")
 
-    paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL")
-    paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL")
+    paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL0GenericAffine")
+    paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL0GenericAffine")
 
     mat_dic_PD, error_PD = load_utils.get_matrices(paths_PD)
     mat_dic_HC, error_HC = load_utils.get_matrices(paths_HC)
@@ -87,21 +100,91 @@ if __name__ == "__main__":
         mat_dic_failed_HC
     )
 
-    angles_mca_PD = np.degree(angles_mca_PD)
-    angles_mca_HC = np.degree(angles_mca_HC)
+    n_fine_HC = len(mat_dic_fine_HC)
+    n_fine_PD = len(mat_dic_fine_PD)
 
-    basic_info_plotter(translation_mca_fine_PD, translation_mca_fine_HC)
-    basic_info_plotter(angles_mca_fine_PD, angles_mca_fine_HC)
-    basic_info_plotter(scales_mca_fine_PD, scales_mca_fine_HC)
-    basic_info_plotter(shears_mca_fine_PD, shears_mca_fine_HC)
+    n_failed_HC = len(mat_dic_fine_HC)
+    n_failed_PD = len(mat_dic_fine_PD)
 
-    basic_info_plotter(translation_mca_failed_PD, translation_mca_failed_HC)
-    basic_info_plotter(angles_mca_failed_PD, angles_mca_failed_HC)
-    basic_info_plotter(scales_mca_failed_PD, scales_mca_failed_HC)
-    basic_info_plotter(shears_mca_failed_PD, shears_mca_failed_HC)
+    angles_mca_PD = np.degrees(angles_mca_PD)
+    angles_mca_HC = np.degrees(angles_mca_HC)
 
-    # result_HC = np.zeros((n_hc_fsl,10))
-    # for i in range(n_hc_fsl):
-    #     for j in range(10):
-    #         result_HC[i,j] = metrics_utils.framewise_displacement(translations_mca_HC[i,j],
-    # angles_mca_HC[i,j], translations_ieee_HC[i], np.degrees(angles_ieee_HC[i]))
+    angles_mca_fine_PD = np.degrees(angles_mca_fine_PD)
+    angles_mca_fine_HC = np.degrees(angles_mca_fine_HC)
+
+    angles_mca_failed_PD = np.degrees(angles_mca_failed_PD)
+    angles_mca_failed_HC = np.degrees(angles_mca_failed_HC)
+
+    basic_info_plotter(
+        translation_mca_fine_PD,
+        translation_mca_fine_HC,
+        software=software,
+        variable="Translations",
+        path=path,
+        axis_labels=["x", "y", "z"],
+        y_lim_sd=[(0, 0.08), (0, 0.2), (0, 0.06)],
+    )
+    basic_info_plotter(
+        angles_mca_fine_PD,
+        angles_mca_fine_HC,
+        software=software,
+        variable="Angles",
+        path=path,
+        axis_labels=["x", "y", "z"],
+        y_lim_sd=[(0, 4), (0, 0.2), (0, 0.2)],
+    )
+    basic_info_plotter(
+        scales_mca_fine_PD,
+        scales_mca_fine_HC,
+        software=software,
+        variable="Scales",
+        path=path,
+        axis_labels=["x", "y", "z"],
+        y_lim_sd=[(0, 0.01), (0, 0.1), (0, 1)],
+    )
+    basic_info_plotter(
+        shears_mca_fine_PD,
+        shears_mca_fine_HC,
+        software=software,
+        variable="Shears",
+        path=path,
+        axis_labels=["x", "y", "z"],
+        y_lim_sd=[(0, 0.05), (0, 0.1), (0, 1)],
+    )
+
+    basic_info_plotter(
+        translation_mca_failed_PD,
+        translation_mca_failed_HC,
+        software=software,
+        variable="Translations failed",
+        path=path,
+        axis_labels=["x", "y", "z"],
+    )
+    basic_info_plotter(
+        angles_mca_failed_PD, angles_mca_failed_HC, software=software, variable="Angles failed", path=path, axis_labels=["x", "y", "z"]
+    )
+    basic_info_plotter(
+        scales_mca_failed_PD, scales_mca_failed_HC, software=software, variable="Scales failed", path=path, axis_labels=["x", "y", "z"]
+    )
+    basic_info_plotter(
+        shears_mca_failed_PD, shears_mca_failed_HC, software=software, variable="Shears failed", path=path, axis_labels=["x", "y", "z"]
+    )
+
+    result_fine_PD = metrics_utils.FD_all_subjects(translation_mca_fine_PD, angles_mca_fine_PD)
+    result_fine_HC = metrics_utils.FD_all_subjects(translation_mca_fine_HC, angles_mca_fine_HC)
+
+    basic_info_plotter(result_fine_PD, result_fine_HC, software=software, variable="Framewise Displacement", path=path, figure_size=(4, 4))
+    #    y_lim_sd=[(0,4), (0,0.2), (0,0.2)])
+
+    result_failed_PD = metrics_utils.FD_all_subjects(translation_mca_failed_PD, angles_mca_failed_PD)
+    result_failed_HC = metrics_utils.FD_all_subjects(translation_mca_failed_HC, angles_mca_failed_HC)
+
+    basic_info_plotter(result_failed_PD, result_failed_HC, software=software, variable="Framewise Displacement failed", path=path, figure_size=(4, 4))
+
+    result_all_PD = metrics_utils.FD_all_subjects(translation_mca_PD, angles_mca_PD)
+    result_all_HC = metrics_utils.FD_all_subjects(translation_mca_HC, angles_mca_HC)
+
+    basic_info_plotter(result_all_PD, result_all_HC, software=software, variable="Framewise Displacement All", path=path, figure_size=(4, 4))
+
+    # leargest_indces(np.std(result_fine_PD, axis=1), mat_dic_fine_PD, n=10)
+    # leargest_indces(np.std(result_fine_HC, axis=1), mat_dic_fine_HC, n=10)
