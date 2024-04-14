@@ -1,4 +1,3 @@
-# import metrics_utils
 import load_utils
 from plot_utils import plotter
 import metrics_utils
@@ -9,6 +8,11 @@ import numpy as np
 from pathlib import Path
 from matplotlib import pyplot as plt
 from fsl.transform import affine
+
+
+def largest_indces(array, dict_, n=4):
+    largest_idx = np.argsort(array, axis=0)[-n:]
+    return np.array(list(dict_.keys()))[largest_idx], largest_idx
 
 
 # changning it later in a way to be abe to use it for ieee
@@ -51,6 +55,14 @@ def copy_and_remove_keys(original_dict, keys_to_copy):
         dict_copy.pop(key)
 
     return dict_copy, new_dict
+
+
+def concatenate_mca_matrices(mat_dic):
+    # Get a list of the "mca" matrices in the dictionary
+    mca_matrices = [matrices["mca"] for matrices in mat_dic.values()]
+
+    # Stack the matrices along a new axis
+    return np.stack(mca_matrices)
 
 
 if __name__ == "__main__":
@@ -185,6 +197,19 @@ if __name__ == "__main__":
     result_all_HC = metrics_utils.FD_all_subjects(translation_mca_HC, angles_mca_HC)
 
     basic_info_plotter(result_all_PD, result_all_HC, software=software, variable="Framewise Displacement All", path=path, figure_size=(4, 4))
+    np.savetxt(path.parent / f"{software}_FD_PD_all.txt", result_all_PD)
+    np.savetxt(path.parent / f"{software}_FD_HC_all.txt", result_all_HC)
 
-    # leargest_indces(np.std(result_fine_PD, axis=1), mat_dic_fine_PD, n=10)
-    # leargest_indces(np.std(result_fine_HC, axis=1), mat_dic_fine_HC, n=10)
+    largest_indces(np.std(result_all_PD, axis=1), mat_dic_PD, n=10)
+    largest_indces(np.std(result_all_HC, axis=1), mat_dic_HC, n=10)
+
+
+# not quite usefull
+# mat_mca_HC  = concatenate_mca_matrices(mat_dic_HC)
+# mat_mca_PD  = concatenate_mca_matrices(mat_dic_PD)
+
+# fd_improved_HC = metrics_utils.FD_all_subjects_improved(mat_mca_HC, 100)
+# largest_indces(np.std(fd_improved_HC, axis=1), mat_dic_HC, n=10)
+
+# fd_improved_PD = metrics_utils.FD_all_subjects_improved(mat_mca_PD, 100)
+# largest_indces(np.std(fd_improved_PD, axis=1), mat_dic_PD, n=10)

@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import product
 
 # from pathlib import Path
 # import significantdigits as sd
@@ -76,3 +77,71 @@ def framewise_displacement(translation, angles, previous_translation=np.array([0
 
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def FD_all_subjects(translation_mca, angles_mca):
+    n, n_mca, _ = translation_mca.shape
+    FD_results = np.zeros((n, n_mca))
+
+    for i, j in product(range(n), range(n_mca)):
+        FD_results[i, j] = framewise_displacement(translation_mca[i, j], angles_mca[i, j])
+
+    return FD_results
+
+
+def random_point_on_sphere_surface(radius, center):
+    np.random.seed(0)  # Set the seed for the random number generator
+
+    x, y, z = np.random.uniform(-1, 1, 3)
+
+    norm = np.sqrt(x**2 + y**2 + z**2)
+    x_norm, y_norm, z_norm = x / norm, y / norm, z / norm
+
+    x_surface = radius * x_norm + center[0]
+    y_surface = radius * y_norm + center[1]
+    z_surface = radius * z_norm + center[2]
+
+    return np.array((x_surface, y_surface, z_surface, 1))
+
+
+def improved_FD(transformation, n=50):
+
+    for i in range(n):
+        distances = np.zeros((n,))
+        reversed_transformation = np.linalg.inv(transformation)
+        p = random_point_on_sphere_surface(50, (0, 0, 0))
+        intial_p = np.dot(reversed_transformation, p)
+        distances[i] = np.linalg.norm(p - intial_p)
+
+    return np.mean(distances)
+
+
+def FD_all_subjects_improved(transformations, n_random=50):
+    n, n_mca, _, _ = transformations.shape
+    FD_results = np.zeros((n, n_mca))
+
+    for i, j in product(range(n), range(n_mca)):
+        FD_results[i, j] = improved_FD(transformations[i, j], n_random)
+
+    return FD_results
+
+
+# def improved_fd(translations, angles, shears, scales):
+#     d_rotation = 2* np.sqrt(np.sum((angles) ** 2))
+#     d_translation = np.sqrt(np.sum((translations)**2))
+#     d_shears = np.sqrt(np.sum((shears)**2)) * 400
+#     d_scales = np.sqrt(np.sum((scales)**2)) * 20
+#     print("translations", d_rotation)
+#     print("angles", d_translation)
+#     print("shears", d_shears)
+#     print("scales", d_scales)
+#     return d_shears + d_scales + d_translation + d_rotation
+
+
+# def FD_all_subjects_improved(translations, angles, shears, scales):
+#     n, n_mca, _ = translations.shape
+#     FD_results = np.zeros((n, n_mca))
+
+#     for i,j in product(range(n), range(n_mca)):
+#         FD_results[i,j] = improved_fd(translations[i,j], angles[i,j], shears[i,j], scales[i,j])
+#     return FD_results
