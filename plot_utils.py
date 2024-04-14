@@ -16,10 +16,15 @@ def create_directory(path):
         path.mkdir(parents=True, exist_ok=True)
 
 
-def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None):
+def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, path=None):
 
     if labels is None:
         labels = ["PD", "HC"]
+
+    if data_1.ndim == 1:
+        data_1 = data_1.reshape(-1, 1)
+        data_2 = data_2.reshape(-1, 1)
+
     dims = data_1.shape[-1]
 
     if axis_labels is None:
@@ -44,9 +49,13 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None):
 
         # Set the y-axis limits
         if ylim is not None:
-            plt.ylim(ylim)
+            plt.ylim(ylim[i])
         else:
             plt.ylim([df["Value"].min() * (0.99), df["Value"].max() * (1.03)])
+
+        if path:
+            create_directory(path)
+            plt.savefig(path / f"{title}.png")
 
     plt.show()
 
