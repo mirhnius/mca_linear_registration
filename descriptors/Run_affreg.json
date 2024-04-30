@@ -1,0 +1,65 @@
+{
+    "name": "SPM12 Affine Registration",
+    "tool-version": "1.0",
+    "description": "Performs affine registration using SPM12 in a Dockerized MATLAB/Octave environment, saving both the transformed image and the transformation matrix.",
+    "command-line": "octave --no-gui --eval \"addpath('/opt/spm12'); run_affreg('[SOURCE_IMG]', '[TEMPLATE_IMG]', '[OUTPUT_IMG]', '[OUTPUT_MAT]')\"",
+    "schema-version": "0.5",
+    "command-line-flag-separator": " ",
+    "inputs": [
+        {
+            "id": "source_img",
+            "name": "Source Image",
+            "type": "File",
+            "description": "Path to the source image for registration.",
+            "value-key": "[SOURCE_IMG]",
+            "optional": false
+        },
+        {
+            "id": "template_img",
+            "name": "Template Image",
+            "type": "File",
+            "description": "Path to the template image for registration.",
+            "value-key": "[TEMPLATE_IMG]",
+            "optional": false
+        },
+        {
+            "id": "output_img",
+            "name": "Output Image Path",
+            "type": "String",
+            "description": "Path where the registered image will be saved.",
+            "value-key": "[OUTPUT_IMG]",
+            "optional": false
+        },
+        {
+            "id": "output_mat",
+            "name": "Output Matrix Path",
+            "type": "String",
+            "description": "Path where the transformation matrix will be saved as a .mat file.",
+            "value-key": "[OUTPUT_MAT]",
+            "optional": false
+        }
+    ],
+    "outputs": [
+        {
+            "id": "registered_image",
+            "name": "Registered Image",
+            "path-template": "[OUTPUT_IMG]",
+            "description": "The output registered image file.",
+            "optional": false,
+            "path-template-stripped-extensions": [".nii", ".nii.gz"]
+        },
+        {
+            "id": "transformation_matrix",
+            "name": "Transformation Matrix",
+            "path-template": "[OUTPUT_MAT]",
+            "description": "File containing the transformation matrix in MATLAB .mat format.",
+            "optional": false,
+            "path-template-stripped-extensions": [".mat"]
+        }
+    ],
+    "container-image": {
+        "type": "docker",
+        "image": "spm12_octave",
+        "tag": "latest"
+    }
+}
