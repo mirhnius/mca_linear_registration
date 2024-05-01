@@ -17,7 +17,7 @@ def create_directory(path):
         path.mkdir(parents=True, exist_ok=True)
 
 
-def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, path=None):
+def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, path=None, ylable=None):
 
     if labels is None:
         labels = ["PD", "HC"]
@@ -47,13 +47,17 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
         sns.boxplot(x=axis_labels[i], y="Value", data=df, color="white")
         if i == 1 or (i == 0 and dims == 1):
             plt.title(title)
+        if ylable:
+            plt.ylabel(ylable)
 
         # Set the y-axis limits
         if ylim is not None:
             plt.ylim(ylim[i])
-        else:
-            plt.ylim([df["Value"].min() * (0.99), df["Value"].max() * (1.03)])
+        # else:
+        #     plt.ylim([df["Value"].min() * (0.9), df["Value"].max() * (1.01)])
 
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+        plt.tight_layout()
         if path:
             create_directory(path)
             plt.savefig(path / f"{title}.png")
@@ -61,7 +65,7 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
     plt.show()
 
 
-def hist_plotter(data_1, data_2, title, labels=None, path=None, bins=[10, 10], s=10):
+def hist_plotter(data_1, data_2, title, labels=None, path=None, bins=[10, 10], s=10, ylable=None):
 
     if labels is None:
         labels = ["Software 1", "Software 2"]
@@ -85,6 +89,12 @@ def hist_plotter(data_1, data_2, title, labels=None, path=None, bins=[10, 10], s
         if i == 1 or (i == 0 and dims == 1):
             plt.title(title)
         plt.legend()
+
+        if ylable:
+            plt.ylabel(ylable)
+
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+        plt.tight_layout()
 
         if path:
             create_directory(path)
