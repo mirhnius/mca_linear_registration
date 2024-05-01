@@ -61,12 +61,8 @@ def framewise_displacement(translation, angles, previous_translation=np.array([0
 
     try:
         if mode == "degree":
-            # angles = np.mod(angles, 360)
-            # previous_angles = np.mod(previous_angles, 360)
             d_rotation = (r * np.pi / 180) * np.sqrt(np.sum((angles - previous_angles) ** 2))
         elif mode == "radian":
-            # angles = np.mod(angles, 2 * np.pi)
-            # previous_angles = np.mod(previous_angles, 2 * np.pi)
             d_rotation = r * np.sqrt(np.sum((angles - previous_angles) ** 2))
         else:
             raise ValueError("Invalid mode. Mode should be either 'degree' or 'radian'.")
@@ -79,12 +75,19 @@ def framewise_displacement(translation, angles, previous_translation=np.array([0
         print(f"An error occurred: {e}")
 
 
-def FD_all_subjects(translation_mca, angles_mca):
-    n, n_mca, _ = translation_mca.shape
+def FD_all_subjects(translation_mca, angles_mca, translation_ieee=None, angles_ieee=None):
+
+    n, n_mca, dims = translation_mca.shape
     FD_results = np.zeros((n, n_mca))
 
+    if translation_ieee is None:
+        translation_ieee = np.zeros((n, dims))
+
+    if angles_ieee is None:
+        angles_ieee = np.zeros((n, dims))
+
     for i, j in product(range(n), range(n_mca)):
-        FD_results[i, j] = framewise_displacement(translation_mca[i, j], angles_mca[i, j])
+        FD_results[i, j] = framewise_displacement(translation_mca[i, j], angles_mca[i, j], translation_ieee[i], angles_ieee[i])
 
     return FD_results
 
