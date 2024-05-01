@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # software = "ANTS"
     # failed_subjects_HC = ["sub-116230", "sub-3620"]
-    # failed_subjects_PD = ["sub-3505", "sub-3586"]
+    # failed_subjects_PD = []
     # path = Path().cwd() / "outputs_plots" / "diagrams" / software
 
     # path_PD = Path("./pipline/pd/outputs/ants/anat-12dofs")
@@ -221,8 +221,12 @@ if __name__ == "__main__":
     result_all_PD = metrics_utils.FD_all_subjects(translation_mca_PD, angles_mca_PD)
     result_all_HC = metrics_utils.FD_all_subjects(translation_mca_HC, angles_mca_HC)
 
-    basic_info_plotter(result_fine_PD, result_fine_HC, software=software, variable="Framewise Displacement", path=path, figure_size=(4, 4))
+    basic_info_plotter(
+        result_fine_PD, result_fine_HC, software=software, variable="Framewise Displacement", path=path, figure_size=(4, 4), y_lim_sd=[(0, 0.5)]
+    )
     #    y_lim_sd=[(0,4), (0,0.2), (0,0.2)])
+    #  y_lim_sd=[(0,2)]
+    # y_lim_mean=[(15,110)]
     basic_info_plotter(result_failed_PD, result_failed_HC, software=software, variable="Framewise Displacement failed", path=path, figure_size=(4, 4))
     basic_info_plotter(result_all_PD, result_all_HC, software=software, variable="Framewise Displacement All", path=path, figure_size=(4, 4))
 
