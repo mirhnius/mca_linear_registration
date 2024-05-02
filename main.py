@@ -76,27 +76,27 @@ def concatenate_mca_matrices(mat_dic):
 
 if __name__ == "__main__":
 
-    # software = "FSL"
-    # failed_subjects_HC = ["sub-116230", "sub-4079", "sub-3620", "sub-3369"]
-    # failed_subjects_PD = ["sub-3709", "sub-3700", "sub-3403"]
-    # path = Path().cwd() / "outputs_plots" / "diagrams" / software
-
-    # path_PD = Path("./pipline/pd/outputs/anat-12dofs")
-    # path_HC = Path("./pipline/hc/outputs/anat-12dofs")
-
-    # paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL")
-    # paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL")
-
-    software = "ANTS"
-    failed_subjects_HC = ["sub-116230", "sub-3620"]
-    failed_subjects_PD = []
+    software = "FSL"
+    failed_subjects_HC = ["sub-116230", "sub-4079", "sub-3620", "sub-3369"]
+    failed_subjects_PD = ["sub-3709", "sub-3700", "sub-3403"]
     path = Path().cwd() / "outputs_plots" / "diagrams" / software
 
-    path_PD = Path("./pipline/pd/outputs/ants/anat-12dofs")
-    path_HC = Path("./pipline/hc/outputs/ants/anat-12dofs")
+    path_PD = Path("./pipline/pd/outputs/anat-12dofs")
+    path_HC = Path("./pipline/hc/outputs/anat-12dofs")
 
-    paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL0GenericAffine")
-    paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL0GenericAffine")
+    paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL")
+    paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL")
+
+    # software = "ANTS"
+    # failed_subjects_HC = ["sub-116230", "sub-3620"]
+    # failed_subjects_PD = []
+    # path = Path().cwd() / "outputs_plots" / "diagrams" / software
+
+    # path_PD = Path("./pipline/pd/outputs/ants/anat-12dofs")
+    # path_HC = Path("./pipline/hc/outputs/ants/anat-12dofs")
+
+    # paths_PD = load_utils.get_paths(path_PD, Path("./PD_selected_subjects.txt"), pattern="_ses-BL0GenericAffine")
+    # paths_HC = load_utils.get_paths(path_HC, Path("./HC_selected_subjects.txt"), pattern="_ses-BL0GenericAffine")
 
     mat_dic_PD, error_PD = load_utils.get_matrices(paths_PD)
     mat_dic_HC, error_HC = load_utils.get_matrices(paths_HC)
@@ -340,14 +340,14 @@ if __name__ == "__main__":
     import pandas as pd
 
     df_fd_pd_new = pd.DataFrame(new_result_all_PD)
-    df_fd_pd_new.index = mat_dic_fine_PD.keys()
     df_fd_pd_new["new_fd"] = df_fd_pd_new.apply(lambda row: row.values, axis=1)
     df_fd_pd_new = df_fd_pd_new[["new_fd"]]
+    df_fd_pd_new.index = mat_dic_PD.keys()
 
     df_fd_pd_old = pd.DataFrame(result_all_PD)
-    df_fd_pd_old.index = mat_dic_PD.keys()
     df_fd_pd_old["old_fd"] = df_fd_pd_old.apply(lambda row: row.values, axis=1)
     df_fd_pd_old = df_fd_pd_old[["old_fd"]]
+    df_fd_pd_old.index = mat_dic_PD.keys()
 
     df_combined_pd = pd.concat([df_fd_pd_new, df_fd_pd_old], axis=1)
     df_combined_pd["Group"] = "PD"
@@ -366,4 +366,4 @@ if __name__ == "__main__":
     df_combined_hc["Group"] = "HC"
 
     df_combined = pd.concat([df_combined_pd, df_combined_hc], axis=0)
-    df_combined.to_csv("fds.csv")
+    df_combined.to_csv("fds_fsl.csv")
