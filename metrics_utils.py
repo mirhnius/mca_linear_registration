@@ -62,8 +62,10 @@ def framewise_displacement(translation, angles, previous_translation=np.array([0
     try:
         if mode == "degree":
             d_rotation = (r * np.pi / 180) * np.sqrt(np.sum((angles - previous_angles) ** 2))
+
         elif mode == "radian":
             d_rotation = r * np.sqrt(np.sum((angles - previous_angles) ** 2))
+
         else:
             raise ValueError("Invalid mode. Mode should be either 'degree' or 'radian'.")
 
