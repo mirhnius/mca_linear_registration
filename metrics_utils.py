@@ -94,6 +94,11 @@ def FD_all_subjects(translation_mca, angles_mca, translation_ieee=None, angles_i
     return FD_results
 
 
+def mean_absolute_difference(FD_mca, FD_ieee):
+
+    return np.mean(np.abs(FD_mca - FD_ieee), axis=1)
+
+
 def random_point_on_sphere_surface(radius, center):
     np.random.seed(0)  # Set the seed for the random number generator
 
