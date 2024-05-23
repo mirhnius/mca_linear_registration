@@ -1,0 +1,30 @@
+# Use the official Ubuntu base image
+FROM ubuntu:20.04
+
+# Avoid prompts from apt during installation
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Update the package repository and install necessary packages
+RUN apt-get update && apt-get install -y \
+    octave \
+    curl \
+    make \
+    liboctave-dev \
+    && rm -rf /var/lib/apt/lists/*  # Clean up to reduce image size
+
+# Download and unpack SPM12
+RUN mkdir /opt/spm12 && \
+    curl -SL https://github.com/spm/spm12/archive/r7771.tar.gz | \
+    tar -xzC /opt/spm12 --strip-components=1
+
+# Compile SPM12 for Octave
+RUN cd /opt/spm12/src && \
+    make PLATFORM=octave distclean && \
+    make PLATFORM=octave && \
+    make PLATFORM=octave install
+
+# Set up SPM12 paths in Octave's startup file
+RUN echo "addpath(genpath('/opt/spm12'));" >> /root/.octaverc
+
+# Set the default command to run Octave in non-GUI mode
+CMD ["octave", "--no-gui"]
