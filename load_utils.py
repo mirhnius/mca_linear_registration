@@ -75,6 +75,7 @@ def get_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: s
 
 
 def load_matlab_file(filename: str):
+    # I need to refactore it later to support spm output
     """
     Load a matlab file and reshape it to affine matrix.
 
@@ -87,7 +88,9 @@ def load_matlab_file(filename: str):
     new_row = np.array([0, 0, 0, 1])
     try:
         mat = scipy.io.loadmat(filename)
-        mat = next(iter(mat.values())).reshape((-1, 4))
+        mat = next(iter(mat.values()))
+        mat = np.column_stack([mat[:9].reshape((3, 3)), mat[9:]])
+        # mat = next(iter(mat.values())).reshape((-1, 4))
         if mat.shape == (3, 4):  # adding the row to shape (4, 4) matrix
             mat = np.vstack((mat, new_row))
         return mat
