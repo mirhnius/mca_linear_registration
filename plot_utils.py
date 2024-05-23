@@ -93,7 +93,7 @@ def hist_plotter(data_1, data_2, title, labels=None, path=None, bins=[10, 10], s
         if ylable:
             plt.ylabel(ylable)
 
-        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.75, hspace=0.75)
         plt.tight_layout()
 
         if path:
