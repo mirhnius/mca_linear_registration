@@ -4,7 +4,6 @@
     "description": "Performs affine registration using SPM12 in a Dockerized MATLAB/Octave environment, saving both the transformed image and the transformation matrix.",
     "command-line": "octave --no-gui --eval \"addpath('/opt/spm12'); run_affreg('[SOURCE_IMG]', '[TEMPLATE_IMG]', '[OUTPUT_IMG]', '[OUTPUT_MAT]')\"",
     "schema-version": "0.5",
-    "command-line-flag-separator": " ",
     "inputs": [
         {
             "id": "source_img",
@@ -39,13 +38,13 @@
             "optional": false
         }
     ],
-    "outputs": [
+    "output-files": [
         {
             "id": "registered_image",
             "name": "Registered Image",
             "path-template": "[OUTPUT_IMG]",
             "description": "The output registered image file.",
-            "optional": false,
+            "optional": true,
             "path-template-stripped-extensions": [".nii", ".nii.gz"]
         },
         {
@@ -53,13 +52,13 @@
             "name": "Transformation Matrix",
             "path-template": "[OUTPUT_MAT]",
             "description": "File containing the transformation matrix in MATLAB .mat format.",
-            "optional": false,
+            "optional": true,
             "path-template-stripped-extensions": [".mat"]
         }
     ],
     "container-image": {
         "type": "docker",
-        "image": "spm12_octave",
-        "tag": "latest"
+        "image": "spm12_octave_new",
+        "index": "index.docker.io"
     }
 }
