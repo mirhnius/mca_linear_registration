@@ -31,6 +31,10 @@ function run_affreg(source_img, template_img, output_img_path, output_matrix_pat
     % Write the resliced and transformed image data to disk
     spm_write_vol(VF, resliced_data);
 
+    % Gzip the output file to save it as .nii.gz and then delete the .nii file
+    gzip(output_img_path);
+    delete(output_img_path);
+
     % Write the transformation matrix to disk
     save(output_matrix_path, 'M');
 
