@@ -1,4 +1,6 @@
 import json
+import gzip
+import shutil
 import argparse
 import pathlib
 from copy import deepcopy
@@ -16,7 +18,9 @@ ORIGINAL = "ieee"
 MCA = "mca"
 FLIRT = "flirt"
 ANTS = "ants"
+SPM = "spm"
 MAT = ".mat"
+NII = ".nii"
 
 PATTERN = pathlib.Path("") / "sub-*" / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
 REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
@@ -122,7 +126,7 @@ def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[
     return subjects_map
 
 
-def updating_subject_map(subjects_map: Dict, input_dir: pathlib.Path) -> Dict:
+def updating_subject_map(subjects_map: Dict, input_dir: pathlib.Path, suffix=SUFFIX) -> Dict:
     """
     Updates the input path of the subjects in the subjects_map.
 
@@ -138,9 +142,29 @@ def updating_subject_map(subjects_map: Dict, input_dir: pathlib.Path) -> Dict:
 
     for subject in subjects_map_copy:
         for session in subjects_map_copy[subject]:
-            subjects_map_copy[subject][session]["input_path"] = str(input_dir / f"{subject}_{session}{SUFFIX}")
+            subjects_map_copy[subject][session]["input_path"] = str(input_dir / f"{subject}_{session}{suffix}")
 
     return subjects_map_copy
+
+
+def unzip_images(src_dir: pathlib.Path, dest_dir: pathlib.Path):
+    """
+    Unzips all the images in the source directory and saves them in the destination directory.
+
+    Parameters:
+        src_dir (pathlib.Path): The source directory containing the zipped images.
+        dest_dir (pathlib.Path): The destination directory to save the unzipped images.
+
+    Returns:
+        None
+    """
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    for file in src_dir.glob("*.nii.gz"):
+        with gzip.open(file, "rb") as f_in:
+            with open(dest_dir / file.with_suffix("").name, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
 
 
 class Preprocessing(ABC):
@@ -494,6 +518,105 @@ class ANTS_MCA_registration(ANTS_IEEE_registration):
             self.invocation_dir = self.invocation_dir.parent
 
 
+class SPM_IEEE_registration(Registration):
+    def __init__(
+        self,
+        subjects_maps: Dict,
+        output_dir: pathlib.Path,
+        invocation_dir: pathlib.Path,
+        ref: str = REF,
+        dof: int = 12,
+    ):
+        """
+        Initializes the SPM registration class for IEEE standard with subject maps, output directory, invocation directory,
+        reference image, and degrees of freedom.
+
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output ANTS IEEE files will be saved.
+            invocation_dir (pathlib.Path): The directory where the ANTS IEEE invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
+        """
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        self.output_dir = self.output_dir / SPM / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        self.invocation_dir = self.invocation_dir / SPM / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+
+    def create_single_subject_invocation(self, subject: Dict) -> Dict:
+        """
+        Generates and returns the ANTS preprocessing invocation for a single subject.
+
+        Parameters:
+            subject (Dict): A dictionary containing details of the subject, including the input path.
+
+        Returns:
+            Dict: FLIRT invocation parameters including input file, reference file, output prefix, and registration mode.
+        """
+
+        in_file = subject["input_path"]
+        output_prefix = self.output_dir / f"{subject['subject']}_{subject['session']}"
+
+        invocation = {
+            "source_img": str(in_file),
+            "template_img": str(self.ref),
+            "output_img": str(output_prefix) + NII,
+            "output_mat": str(output_prefix) + MAT,
+        }
+        return invocation
+
+    def create_invocations(self, dry_run: bool = False):
+        return super().create_invocations(dry_run)
+
+
+class SPM_MCA_registration(SPM_IEEE_registration):
+    def __init__(
+        self,
+        subjects_maps: Dict,
+        output_dir: pathlib.Path,
+        invocation_dir: pathlib.Path,
+        ref: str = REF,
+        n_mca: int = 10,
+        dof: int = 12,
+    ):
+        """
+        Initializes the SPM registration class for MCA (Monte Carlo Arithmetic) with subject maps,
+        output directory, invocation directory, reference image, degrees of freedom, and the number of MCA iterations.
+
+        Parameters:
+            subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
+            output_dir (pathlib.Path): The directory where the output ANTS MCA files will be saved.
+            invocation_dir (pathlib.Path): The directory where the ANTS MCA invocation files will be written.
+            ref (str): Path to the reference image against which registration is performed.
+            n_mca (int): Number of MCA iterations to be performed for the preprocessing step.
+            dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
+        """
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        self.n_mca = n_mca
+        self.output_dir = self.output_dir.parent / MCA
+        self.invocation_dir = self.invocation_dir.parent / MCA
+
+    def create_invocations(self, dry_run: bool = False):
+        """
+        Generates and writes the ANTS MCA registration invocations JSON files for each subject
+        across specified neumebr of MCA iterations. Each iteration potentially generates a slightly different
+        output file due to the randomness of the MCA algorithm.
+
+        Parameters:
+            dry_run (bool): If True, the invocations are printed to the console instead of being written to files.
+
+        Returns:
+            None
+        """
+
+        for i in range(self.n_mca):
+
+            self.output_dir = self.output_dir / f"{i+1}"
+            self.invocation_dir = self.invocation_dir / f"{i+1}"
+            super().create_invocations(dry_run)
+            self.output_dir = self.output_dir.parent
+            self.invocation_dir = self.invocation_dir.parent
+
+
 def parse_args():
 
     parser = argparse.ArgumentParser(fromfile_prefix_chars="@", description="create invocation for MCA and Original data")
@@ -540,9 +663,15 @@ if __name__ == "__main__":
     # ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
     # ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
 
-    ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
-        False
-    )
-    ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
-        False
-    )
+    # ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
+    #     False
+    # )
+    # ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
+    #     False
+    # )
+
+    unziped_preprocess_dir = output_dir / "preprocess_unziped"
+    unzip_images(robustfov_output_dir, unziped_preprocess_dir)
+    subjects_map_after_unzip = unziped_preprocess_dir(subjects_map, unziped_preprocess_dir, suffix=NII)
+    SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir).create_invocations(False)
+    SPM_MCA_registration(subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca).create_invocations(False)
