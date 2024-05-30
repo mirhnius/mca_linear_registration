@@ -23,7 +23,8 @@ MAT = ".mat"
 NII = ".nii"
 
 PATTERN = pathlib.Path("") / "sub-*" / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
-REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
+# REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
+REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii"
 
 
 def read_subjects_paths(file_path: str) -> List[str]:
@@ -544,13 +545,13 @@ class SPM_IEEE_registration(Registration):
 
     def create_single_subject_invocation(self, subject: Dict) -> Dict:
         """
-        Generates and returns the ANTS preprocessing invocation for a single subject.
+        Generates and returns the SPM preprocessing invocation for a single subject.
 
         Parameters:
             subject (Dict): A dictionary containing details of the subject, including the input path.
 
         Returns:
-            Dict: FLIRT invocation parameters including input file, reference file, output prefix, and registration mode.
+            Dict: SPM invocation parameters including input file, reference file, output prefix, and registration mode.
         """
 
         in_file = subject["input_path"]
@@ -671,7 +672,7 @@ if __name__ == "__main__":
     # )
 
     unziped_preprocess_dir = output_dir / "preprocess_unziped"
-    unzip_images(robustfov_output_dir, unziped_preprocess_dir)
-    subjects_map_after_unzip = unziped_preprocess_dir(subjects_map, unziped_preprocess_dir, suffix=NII)
-    SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir).create_invocations(False)
-    SPM_MCA_registration(subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca).create_invocations(False)
+    # unzip_images(robustfov_output_dir, unziped_preprocess_dir)
+    subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
+    SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir).create_invocations()
+    SPM_MCA_registration(subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca).create_invocations()
