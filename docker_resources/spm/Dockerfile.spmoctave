@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-RUN apt update -y 
+RUN apt update -y
 RUN DEBIAN_FRONTEND=noninteractive apt install octave -y
 
 RUN apt install curl -y
@@ -16,5 +16,3 @@ RUN  make -C /opt/spm12/src PLATFORM=octave distclean &&\
      make -C /opt/spm12/src PLATFORM=octave &&\
      make -C /opt/spm12/src PLATFORM=octave install &&\
      ln -s /opt/spm12/bin/spm12-octave /usr/local/bin/spm12
-
-

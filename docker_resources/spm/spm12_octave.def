@@ -1,0 +1,12 @@
+Bootstrap: docker
+From: mirhnius/spm12_octave_new
+
+%environment
+    export PATH="/usr/local/bin:$PATH"
+
+%post
+    # Ensure SPM paths are added for Octave
+    echo "addpath('/opt/spm12'); addpath('/opt/spm12/toolbox/OldNorm');" >> /root/.octaverc
+
+%runscript
+    exec octave --no-gui "$@"

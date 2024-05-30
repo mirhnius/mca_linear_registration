@@ -1,7 +1,8 @@
 # Base image
-FROM glatard/spm-octave
+# FROM glatard/spm-octave
+FROM mirhnius/spm12_octave_new
 
-RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr} 
+RUN mkdir -p /opt/mca-libmath/{fast,standard,quad,mpfr}
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /opt/mca-libmath/set-fuzzy-libmath.py /usr/local/bin/set-fuzzy-libmath
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /opt/mca-libmath/fast/libmath.so /opt/mca-libmath/fast/libmath.so
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /opt/mca-libmath/standard/libmath.so /opt/mca-libmath/standard/libmath.so
@@ -14,7 +15,7 @@ COPY --from=verificarlo/fuzzy:v0.9.1-lapack /usr/local/bin/verificarlo* /usr/loc
 COPY --from=verificarlo/fuzzy:v0.9.1-lapack /usr/local/include/* /usr/local/include/
 
 # Install Python 3
-RUN apt update -y && apt install -y python3 
+RUN apt update -y && apt install -y python3
 
 # Preloading the instrumented shared library
 RUN set-fuzzy-libmath --version=standard
