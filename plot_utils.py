@@ -107,12 +107,12 @@ def generate_gif(images, filename, duration=200):
         frame_one.save(filename, format="GIF", append_images=[Image.open(image) for image in images[1:]], save_all=True, duration=duration, loop=0)
 
 
-def process_images(
+def slice_plotter(
     images_paths,
     title_prefix,
     output_dir,
-    template=load_mni152_template,
-    cut_coords=(0, 0, 0),
+    template="mni152",
+    cut_coords=None,
     levels=[0.6],
     display_mode="ortho",
     colorbar=True,
@@ -124,7 +124,16 @@ def process_images(
 ):
 
     create_directory(output_dir)
-    template = template()
+
+    if display_mode == "ortho" and cut_coords is None:
+        cut_coords = (3, 3, 3)
+
+    if template == "mni152":
+        template = load_mni152_template()
+    elif isinstance(template, str):
+        template = nib.load(template)
+    else:
+        raise ValueError("Template must be either 'mni152' or a path to a Nifti file")
 
     for image_path in images_paths:
 
@@ -144,7 +153,7 @@ def process_images(
                 dim=dim,
                 **kwargs,
             )
-            # template=template not sure about this
+
             display.add_contours(template, levels=levels, cut_coords=cut_coords, colors="r")
             display.savefig(output_file)
             display.close()
@@ -160,7 +169,7 @@ def make_gif(image_paths, subject_name, output_dir, duration=200, **kwargs):
     try:
         output_dir_preprocess = output_dir / f"preprocess_{subject_name}"
         create_directory(output_dir_preprocess)
-        process_images(image_paths, subject_name, output_dir_preprocess, **kwargs)
+        slice_plotter(image_paths, subject_name, output_dir_preprocess, **kwargs)
 
         png_files = list(output_dir_preprocess.glob("*.png"))
         generate_gif(png_files, output_dir / f"{subject_name}.gif", duration=duration)
