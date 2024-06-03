@@ -2,7 +2,7 @@
     "name": "SPM12 Affine Registration",
     "tool-version": "1.0",
     "description": "Performs affine registration using SPM12 in a Dockerized MATLAB/Octave environment, saving both the transformed image and the transformation matrix.",
-    "command-line": "octave --no-gui --eval \"addpath('/opt/spm12'); run_affreg('[SOURCE_IMG]', '[TEMPLATE_IMG]', '[OUTPUT_IMG]', '[OUTPUT_MAT]')\"",
+    "command-line": "octave --no-gui --eval \" run_affreg('[SOURCE_IMG]', '[TEMPLATE_IMG]', '[OUTPUT_IMG]', '[OUTPUT_MAT]')\"",
     "schema-version": "0.5",
     "inputs": [
         {

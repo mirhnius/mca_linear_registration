@@ -1,7 +1,7 @@
 function run_affreg(source_img, template_img, output_img_path, output_matrix_path)
 
     % Add SPM to the MATLAB path
-    addpath('/opt/spm12')
+    addpath(genpath('/opt/spm12'))
 
     % Load the images
     VF = spm_vol(source_img); % Source image volume
