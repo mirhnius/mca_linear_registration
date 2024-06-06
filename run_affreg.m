@@ -1,5 +1,4 @@
 function run_affreg(source_img, template_img, output_img_path, output_matrix_path)
-
     % Add SPM to the MATLAB path
     addpath(genpath('/opt/spm12'))
 
@@ -7,22 +6,21 @@ function run_affreg(source_img, template_img, output_img_path, output_matrix_pat
     VF = spm_vol(source_img); % Source image volume
     VG = spm_vol(template_img); % Template image volume
 
-    % Setup the flags for affine registration
-    #flags = struct('regtype', 'affine', 'sep', 4);
-    #should I smooth the images?
+
 
     % Perform affine registration
     [M, ~] = spm_affreg(VG, VF);
-    #, flags)
 
-    % Apply the transformation matrix to the source image
+    % Apply the transformation matrix to a copy of the source images transformation matrix
     VF.mat = M * VF.mat;
 
-    % Prepare to reslice, but manage outputs manually
-    reslice_flags = struct('which', 1, 'mean', false, 'interp', 1, 'prefix', '');
+    % Prepare flags for reslicing
+    reslice_flags = struct('which', 0, 'mean', false, 'interp', 1, 'prefix', '');
+
+    % Call spm_reslice with which=0 to perform reslicing in memory
     spm_reslice([VG, VF], reslice_flags);
 
-    % Load the resliced image (it should be in memory now)
+    % Read the resliced data from the transformed image
     resliced_data = spm_read_vols(VF);
 
     % Update VF structure to save the image with the desired output filename
