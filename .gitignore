@@ -4,9 +4,11 @@
 *.err
 *.out
 *.txt
+*.nii
 test
 test_ppmi_hc
 invocations*
+spm_ieee
 anat*
 *.txt
 *.nii.gz
@@ -20,3 +22,5 @@ pipline
 original_data
 !PD_selected_subjects.txt
 !HC_selected_subjects.txt
+*.csv
+*.nii
