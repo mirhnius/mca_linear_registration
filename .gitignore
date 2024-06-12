@@ -5,13 +5,14 @@
 *.out
 *.txt
 *.nii
+*.csv
+*.nii.gz
+
 test
 test_ppmi_hc
 invocations*
 spm_ieee
 anat*
-*.txt
-*.nii.gz
 outputs*
 participants.tsv
 temp*.sh
@@ -22,5 +23,5 @@ pipline
 original_data
 !PD_selected_subjects.txt
 !HC_selected_subjects.txt
-*.csv
-*.nii
+build
+lnrgst_mca.egg-info
