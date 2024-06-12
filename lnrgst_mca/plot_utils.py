@@ -140,7 +140,7 @@ def slice_plotter(
         image_path = Path(image_path)
         try:
             img = nib.load(image_path)
-            output_file = output_dir / f"{image_path.parent.name}.png"
+            output_file = output_dir / f"{'_'.join([image_path.parent.name, image_path.name])}.png"
             display = plotting.plot_anat(
                 img,
                 cut_coords=cut_coords,
@@ -177,45 +177,3 @@ def make_gif(image_paths, subject_name, output_dir, duration=200, **kwargs):
         shutil.rmtree(output_dir_preprocess)
     except Exception as e:
         print(f"No images found for {subject_name}: {e}")
-
-
-# from brokenaxes import brokenaxes
-
-# def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, path=None):
-#     if labels is None:
-#         labels = ["PD", "HC"]
-
-#     if data_1.ndim == 1:
-#         data_1 = data_1.reshape(-1, 1)
-#         data_2 = data_2.reshape(-1, 1)
-
-#     dims = data_1.shape[-1]
-
-#     if axis_labels is None:
-#         axis_labels = ["Group"] * dims
-
-#     for i in range(dims):
-#         fig = plt.figure()
-#         bax = brokenaxes(ylims=ylim[i] if ylim is not None else ((0, 1), (0, 1)))
-
-#         # Create a DataFrame for each dataset
-#         df_1 = pd.DataFrame({axis_labels[i]: labels[0], "Value": data_1[:, i]})
-#         df_2 = pd.DataFrame({axis_labels[i]: labels[1], "Value": data_2[:, i]})
-
-#         # Concatenate the DataFrames
-#         df = pd.concat([df_1, df_2])
-
-#         # Plotting directly with matplotlib
-#         for label, df_group in df.groupby(axis_labels[i]):
-#             print(label)
-#             bax.plot(df_group[axis_labels[i]], df_group['Value'], marker='o', linestyle='', label=label)
-
-#         bax.legend()
-#         if i == 1 or (i == 0 and dims == 1):
-#             bax.set_title(title)
-
-#         if path:
-#             create_directory(path)
-#             plt.savefig(Path(path) / f"{title}_{i}.png")
-
-#         plt.show()
