@@ -25,6 +25,7 @@ NII = ".nii"
 PATTERN = pathlib.Path("") / "sub-*" / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
 # REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
 REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii"
+REF = "HEEHHE"
 
 
 def read_subjects_paths(file_path: str) -> List[str]:
@@ -68,8 +69,8 @@ def find_scans(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[str] = N
     for sub_dir in sub_dirs:
         scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
 
-        if len(list(pathlib.Path(sub_dir).glob(str(pattern)))) == 0:
-            print(sub_dir)
+        # if not list(pathlib.Path(sub_dir).glob(str(pattern))):
+        #     print(sub_dir)
 
     return scan_paths
 
@@ -148,6 +149,12 @@ def updating_subject_map(subjects_map: Dict, input_dir: pathlib.Path, suffix=SUF
     return subjects_map_copy
 
 
+def unzipper(file, dest_dir):
+    with gzip.open(file, "rb") as f_in:
+        with open(dest_dir / file.with_suffix("").name, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+
 def unzip_images(src_dir: pathlib.Path, dest_dir: pathlib.Path):
     """
     Unzips all the images in the source directory and saves them in the destination directory.
@@ -161,11 +168,8 @@ def unzip_images(src_dir: pathlib.Path, dest_dir: pathlib.Path):
     """
 
     dest_dir.mkdir(parents=True, exist_ok=True)
-
     for file in src_dir.glob("*.nii.gz"):
-        with gzip.open(file, "rb") as f_in:
-            with open(dest_dir / file.with_suffix("").name, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
+        unzipper(file, dest_dir)
 
 
 class Preprocessing(ABC):
@@ -305,7 +309,9 @@ class ROBUSTFOV_preprocessing(Preprocessing):
 
 
 class Registration(Preprocessing):
-    def __init__(self, subjects_maps: Dict, output_dir: pathlib.Path, invocation_dir: pathlib.Path, ref: str = REF, dof: int = 12):
+    def __init__(
+        self, subjects_maps: Dict, output_dir: pathlib.Path, invocation_dir: pathlib.Path, ref: str = REF, dof: int = 12, template_name=None
+    ):
         """
         Initializes the preprocessing class.
 
@@ -319,10 +325,13 @@ class Registration(Preprocessing):
         super().__init__(subjects_maps, output_dir, invocation_dir)
         self.ref = ref
         self.dofs = dof
+        self.template_name = template_name if template_name else pathlib.Path(ref).name
 
 
 class FLIRT_IEEE_registration(Registration):
-    def __init__(self, subjects_maps: Dict, output_dir: pathlib.Path, invocation_dir: pathlib.Path, ref: str = REF, dof: int = 12):
+    def __init__(
+        self, subjects_maps: Dict, output_dir: pathlib.Path, invocation_dir: pathlib.Path, ref: str = REF, dof: int = 12, template_name=None
+    ):
         """
         Initializes the FLIRT preprocessing class for IEEE standard with subject maps, output directory,
         invocation directory, reference image, and degrees of freedom.
@@ -334,10 +343,10 @@ class FLIRT_IEEE_registration(Registration):
             ref (str): Path to the reference image against which registration is performed.
             dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
 
-        self.output_dir = self.output_dir / FLIRT / f"anat-{str(self.dofs)}dofs" / ORIGINAL
-        self.invocation_dir = self.invocation_dir / FLIRT / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        self.output_dir = self.output_dir / FLIRT / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        self.invocation_dir = self.invocation_dir / FLIRT / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
 
     def create_single_subject_invocation(self, subject: Dict) -> Dict:
         """
@@ -375,6 +384,7 @@ class FLIRT_MCA_registration(FLIRT_IEEE_registration):
         ref: str = REF,
         n_mca: int = 10,
         dof: int = 12,
+        template_name=None,
     ):
         """
         Initializes the FLIRT registration class for MCA (Monte Carlo Arithmetic) with subject maps, output directory,
@@ -388,7 +398,7 @@ class FLIRT_MCA_registration(FLIRT_IEEE_registration):
             n_mca (int): Number of MCA iterations to be performed for the preprocessing step.
             dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
         self.n_mca = n_mca
         self.output_dir = self.output_dir.parent / MCA
         self.invocation_dir = self.invocation_dir.parent / MCA
@@ -424,6 +434,7 @@ class ANTS_IEEE_registration(Registration):
         ref: str = REF,
         dof: int = 12,
         t: str = "a",
+        template_name=None,
     ):
         """
         Initializes the ANTS registration class for IEEE standard with subject maps, output directory, invocation directory,
@@ -437,10 +448,10 @@ class ANTS_IEEE_registration(Registration):
             dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
             t (str): transformation mode
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
         self.t = t
-        self.output_dir = self.output_dir / ANTS / f"anat-{str(self.dofs)}dofs" / ORIGINAL
-        self.invocation_dir = self.invocation_dir / ANTS / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        self.output_dir = self.output_dir / ANTS / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        self.invocation_dir = self.invocation_dir / ANTS / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
 
     def create_single_subject_invocation(self, subject: Dict) -> Dict:
         """
@@ -478,6 +489,7 @@ class ANTS_MCA_registration(ANTS_IEEE_registration):
         n_mca: int = 10,
         dof: int = 12,
         t: str = "a",
+        template_name=None,
     ):
         """
         Initializes the ANTS registration class for MCA (Monte Carlo Arithmetic) with subject maps,
@@ -492,7 +504,7 @@ class ANTS_MCA_registration(ANTS_IEEE_registration):
             dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
             t (str): transformation mode
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, t)
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, t, template_name)
         self.n_mca = n_mca
         self.output_dir = self.output_dir.parent / MCA
         self.invocation_dir = self.invocation_dir.parent / MCA
@@ -527,6 +539,7 @@ class SPM_IEEE_registration(Registration):
         invocation_dir: pathlib.Path,
         ref: str = REF,
         dof: int = 12,
+        template_name=None,
     ):
         """
         Initializes the SPM registration class for IEEE standard with subject maps, output directory, invocation directory,
@@ -539,9 +552,9 @@ class SPM_IEEE_registration(Registration):
             ref (str): Path to the reference image against which registration is performed.
             dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
-        self.output_dir = self.output_dir / SPM / f"anat-{str(self.dofs)}dofs" / ORIGINAL
-        self.invocation_dir = self.invocation_dir / SPM / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
+        self.output_dir = self.output_dir / SPM / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
+        self.invocation_dir = self.invocation_dir / SPM / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
 
     def create_single_subject_invocation(self, subject: Dict) -> Dict:
         """
@@ -578,6 +591,7 @@ class SPM_MCA_registration(SPM_IEEE_registration):
         ref: str = REF,
         n_mca: int = 10,
         dof: int = 12,
+        template_name=None,
     ):
         """
         Initializes the SPM registration class for MCA (Monte Carlo Arithmetic) with subject maps,
@@ -591,7 +605,7 @@ class SPM_MCA_registration(SPM_IEEE_registration):
             n_mca (int): Number of MCA iterations to be performed for the preprocessing step.
             dof (int): Degrees of freedom to be used by ANTS for image registration. Default is 12.
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof)
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
         self.n_mca = n_mca
         self.output_dir = self.output_dir.parent / MCA
         self.invocation_dir = self.invocation_dir.parent / MCA
@@ -627,12 +641,56 @@ def parse_args():
     parser.add_argument("--n_mca", type=int, default=10, help="number of MCA repettions")
     parser.add_argument("--dry-run", action="store_true", help="Dry run")
     # parser.add_argument('--dofs', type=int, nargs='+', default=[12], help='Degrees of freedom for flirt')
+    parser.add_argument("--ref", type=str, default=REF, help="path to template")
     parser.add_argument("--input_subjects", type=str, default=None, help="input subjects paths")
-
+    parser.add_argument("--template_name", type=str, default=None, help="Template name")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
+
+    # args = parse_args()
+
+    # input_dir = pathlib.Path(args.input_dir)
+    # output_dir = pathlib.Path(args.output_dir)
+    # invocation_dir = pathlib.Path(args.invocation_dir)
+    # sub_dirs = read_subjects_paths(args.input_subjects)
+    # input_subjects = args.input_subjects
+
+    # robustfov_input_dir = input_dir
+    # robustfov_output_dir = output_dir / "preprocess"
+    # robustfov_invocation_dir = invocation_dir / "robustfov"
+    # bet_invocation_dir = invocation_dir / "bet"
+    # flirt_invocation_dir = invocation_dir / "flirt"
+    # bet_output_dir = robustfov_output_dir
+
+    # subjects_map = create_subject_map(robustfov_input_dir, sub_dirs=sub_dirs)
+    # subjects_map_after_preprocess = updating_subject_map(subjects_map, robustfov_output_dir)
+
+    # # ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+    # # BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+    # # FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+    # # FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca
+    # # ).create_invocations(dry_run=args.dry_run)
+
+    # # ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
+    # # ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
+
+    # # ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
+    # #     False
+    # # )
+    # # ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
+    # #     False
+    # # )
+
+    # unziped_preprocess_dir = output_dir / "preprocess_unziped"
+    # # unzip_images(robustfov_output_dir, unziped_preprocess_dir)
+    # subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
+    # SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir).create_invocations()
+    # SPM_MCA_registration(subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca).create_invocations()
 
     args = parse_args()
 
@@ -641,38 +699,96 @@ if __name__ == "__main__":
     invocation_dir = pathlib.Path(args.invocation_dir)
     sub_dirs = read_subjects_paths(args.input_subjects)
     input_subjects = args.input_subjects
+    refrence = args.ref
+    template_name = args.template_name
 
+    # think later about improving output and invo dirs for preprocess steps
     robustfov_input_dir = input_dir
     robustfov_output_dir = output_dir / "preprocess"
     robustfov_invocation_dir = invocation_dir / "robustfov"
     bet_invocation_dir = invocation_dir / "bet"
-    flirt_invocation_dir = invocation_dir / "flirt"
     bet_output_dir = robustfov_output_dir
 
-    subjects_map = create_subject_map(robustfov_input_dir, sub_dirs=sub_dirs)
-    subjects_map_after_preprocess = updating_subject_map(subjects_map, robustfov_output_dir)
+    preprocess_output_dir = output_dir / "preprocess"
+    preprocess_invo_dir = invocation_dir / "preprocess"
+    unziped_preprocess_dir = output_dir / "preprocess_unzipped"
 
-    # ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
-
-    # BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
-
-    # FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
-
-    # FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca
-    # ).create_invocations(dry_run=args.dry_run)
-
-    # ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
-    # ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
-
-    # ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
-    #     False
-    # )
-    # ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
-    #     False
-    # )
-
-    unziped_preprocess_dir = output_dir / "preprocess_unziped"
-    # unzip_images(robustfov_output_dir, unziped_preprocess_dir)
+    # Create subject maps
+    subjects_map = create_subject_map(input_dir, sub_dirs=sub_dirs)
+    subjects_map_after_preprocess = updating_subject_map(subjects_map, preprocess_output_dir)
     subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
-    SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir).create_invocations()
-    SPM_MCA_registration(subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca).create_invocations()
+
+    ref_path = pathlib.Path(refrence)
+    ref_nii = ref_path.with_suffix("")
+
+    if not preprocess_invo_dir.exists() or not any(preprocess_invo_dir.iterdir()):
+
+        ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+        BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+    if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
+        unzip_images(preprocess_output_dir, unziped_preprocess_dir)
+
+    if ref_path.suffix == SUFFIX:
+
+        if not ref_nii.exists():
+            unzipper(ref_path, ref_path.parent)
+        ref_nii_name = ref_nii.name
+
+    elif ref_path.suffix == NII or ref_nii.suffix == NII:
+        ref_nii_name = refrence
+
+    FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
+        dry_run=args.dry_run
+    )
+
+    FLIRT_MCA_registration(
+        subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=refrence, template_name=template_name
+    ).create_invocations(dry_run=args.dry_run)
+
+    ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
+        False
+    )
+    ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
+        False
+    )
+
+    ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(False)
+    ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(False)
+
+    SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir, ref=ref_nii_name, template_name=template_name).create_invocations()
+    SPM_MCA_registration(
+        subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca, ref=ref_nii_name, template_name=template_name
+    ).create_invocations()
+
+    # # Handle unzipping preprocess directory
+    # unziped_preprocess_dir = output_dir / "preprocess_unzipped"
+    # # unzip_images(output_dir / "preprocess", unziped_preprocess_dir)
+    # subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
+    # software_configs = [
+    #     {"software": "ROBUSTFOV", "class": ROBUSTFOV_preprocessing, "output_subdir": "preprocess"},
+    #     {"software": "BET", "class": BET_preprocessing, "output_subdir": "bet", "params": {"f": 0.5}},
+    #     {"software": "FLIRT_IEEE", "class": FLIRT_IEEE_registration, "output_subdir": "flirt"},
+    #     {"software": "FLIRT_MCA", "class": FLIRT_MCA_registration, "output_subdir": "flirt", "params": {"n_mca": args.n_mca}},
+    #     {"software": "ANTS_IEEE", "class": ANTS_IEEE_registration, "output_subdir": "ants"},
+    #     {"software": "ANTS_MCA", "class": ANTS_MCA_registration, "output_subdir": "ants", "params": {"n_mca": args.n_mca}},
+    #     {"software": "SPM_IEEE", "class": SPM_IEEE_registration, "output_subdir": "spm", "subjects_map": subjects_map_after_unzip},
+    #     {"software": "SPM_MCA", "class": SPM_MCA_registration, "output_subdir": "spm",
+    #    "              params": {"n_mca": args.n_mca}, "subjects_map": subjects_map_after_unzip},
+    # ]
+
+    # for config in software_configs:
+    #     software_class = config["class"]
+    #     output_subdir = config["output_subdir"]
+    #     output_path = output_dir
+    #     invocation_path = invocation_dir
+    #     subjects_map_used = config.get("subjects_map",
+    #      subjects_map_after_preprocess)  # Default to preprocessed map, but can override for specific software
+
+    #     # Check for additional parameters
+    #     params = config.get("params", {})
+    #     software_instance = software_class(subjects_map_used, output_path, invocation_path, **params)
+
+    #     # Create invocations
+    #     software_instance.create_invocations(dry_run=args.dry_run)
