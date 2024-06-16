@@ -23,9 +23,8 @@ MAT = ".mat"
 NII = ".nii"
 
 PATTERN = pathlib.Path("") / "sub-*" / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
-# REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
-REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii"
-REF = "HEEHHE"
+REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
+# REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii"
 
 
 def read_subjects_paths(file_path: str) -> List[str]:
@@ -647,148 +646,171 @@ def parse_args():
     return parser.parse_args()
 
 
+# maybe remove this
+def prepare_preprocess_directories(output_dir: pathlib.Path):
+
+    preprocess_output_dir = output_dir / "preprocess"
+    unziped_preprocess_dir = output_dir / "preprocess_unzipped"
+    preprocess_output_dir.mkdir(parents=True, exist_ok=True)
+    unziped_preprocess_dir.mkdir(parents=True, exist_ok=True)
+    return preprocess_output_dir, unziped_preprocess_dir
+
+
+def handle_preprocessing(subjects_map, subjects_map_after_preprocess, output_dir, invocation_dir, dry_run=False, same_dir=True):
+
+    robustfov_invocation_dir = invocation_dir / "robustfov"
+    bet_invocation_dir = invocation_dir / "bet"
+
+    if same_dir:
+        robustfov_output_dir = output_dir / "preprocess"
+        bet_output_dir = output_dir / "preprocess"
+    else:
+        robustfov_output_dir = output_dir / "robustfov"
+        bet_output_dir = output_dir / "bet"
+
+    if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
+        ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
+        BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+
+
+def handle_unzipping(preprocess_output_dir, unziped_preprocess_dir):
+    if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
+        unzip_images(preprocess_output_dir, unziped_preprocess_dir)
+
+
+def handle_reference(ref_path):
+    ref_nii = ref_path.with_suffix("")
+    if ref_path.suffix == SUFFIX:
+        if not ref_nii.exists():
+            unzipper(ref_path, ref_path.parent)
+        return ref_nii.name
+    elif ref_path.suffix == NII or ref_nii.suffix == NII:
+        return str(ref_path)
+    else:
+        return str(ref_path)
+
+
+def handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, ref_nii_name, args):
+    FLIRT_IEEE_registration(
+        subjects_map_after_preprocess, output_dir, invocation_dir, ref=args.ref, template_name=args.template_name
+    ).create_invocations(dry_run=args.dry_run)
+    FLIRT_MCA_registration(
+        subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=args.ref, template_name=args.template_name
+    ).create_invocations(dry_run=args.dry_run)
+    ANTS_IEEE_registration(
+        subjects_map_after_preprocess, output_dir, invocation_dir, ref=args.ref, template_name=args.template_name
+    ).create_invocations(dry_run=args.dry_run)
+    ANTS_MCA_registration(
+        subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=args.ref, template_name=args.template_name
+    ).create_invocations(dry_run=args.dry_run)
+    SPM_IEEE_registration(
+        subjects_map_after_unzip, output_dir, invocation_dir, ref=ref_nii_name, template_name=args.template_name
+    ).create_invocations(dry_run=args.dry_run)
+    SPM_MCA_registration(
+        subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca, ref=ref_nii_name, template_name=args.template_name
+    ).create_invocations(dry_run=args.dry_run)
+
+
 if __name__ == "__main__":
-
-    # args = parse_args()
-
-    # input_dir = pathlib.Path(args.input_dir)
-    # output_dir = pathlib.Path(args.output_dir)
-    # invocation_dir = pathlib.Path(args.invocation_dir)
-    # sub_dirs = read_subjects_paths(args.input_subjects)
-    # input_subjects = args.input_subjects
-
-    # robustfov_input_dir = input_dir
-    # robustfov_output_dir = output_dir / "preprocess"
-    # robustfov_invocation_dir = invocation_dir / "robustfov"
-    # bet_invocation_dir = invocation_dir / "bet"
-    # flirt_invocation_dir = invocation_dir / "flirt"
-    # bet_output_dir = robustfov_output_dir
-
-    # subjects_map = create_subject_map(robustfov_input_dir, sub_dirs=sub_dirs)
-    # subjects_map_after_preprocess = updating_subject_map(subjects_map, robustfov_output_dir)
-
-    # # ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
-
-    # # BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
-
-    # # FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir).create_invocations(dry_run=args.dry_run)
-
-    # # FLIRT_MCA_registration(subjects_map_after_preprocess, output_dir, flirt_invocation_dir, n_mca=args.n_mca
-    # # ).create_invocations(dry_run=args.dry_run)
-
-    # # ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
-    # # ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir).create_invocations(False)
-
-    # # ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
-    # #     False
-    # # )
-    # # ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref="./tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz").create_invocations(
-    # #     False
-    # # )
-
-    # unziped_preprocess_dir = output_dir / "preprocess_unziped"
-    # # unzip_images(robustfov_output_dir, unziped_preprocess_dir)
-    # subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
-    # SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir).create_invocations()
-    # SPM_MCA_registration(subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca).create_invocations()
-
     args = parse_args()
 
     input_dir = pathlib.Path(args.input_dir)
     output_dir = pathlib.Path(args.output_dir)
     invocation_dir = pathlib.Path(args.invocation_dir)
     sub_dirs = read_subjects_paths(args.input_subjects)
-    input_subjects = args.input_subjects
-    refrence = args.ref
+    ref_path = pathlib.Path(args.ref)
     template_name = args.template_name
 
-    # think later about improving output and invo dirs for preprocess steps
-    robustfov_input_dir = input_dir
-    robustfov_output_dir = output_dir / "preprocess"
-    robustfov_invocation_dir = invocation_dir / "robustfov"
-    bet_invocation_dir = invocation_dir / "bet"
-    bet_output_dir = robustfov_output_dir
-
-    preprocess_output_dir = output_dir / "preprocess"
-    preprocess_invo_dir = invocation_dir / "preprocess"
-    unziped_preprocess_dir = output_dir / "preprocess_unzipped"
+    # Prepare directories
+    # seems very unnecessary
+    preprocess_output_dir, unziped_preprocess_dir = prepare_preprocess_directories(output_dir)
 
     # Create subject maps
     subjects_map = create_subject_map(input_dir, sub_dirs=sub_dirs)
     subjects_map_after_preprocess = updating_subject_map(subjects_map, preprocess_output_dir)
     subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
 
-    ref_path = pathlib.Path(refrence)
-    ref_nii = ref_path.with_suffix("")
+    # Handle preprocessing
+    handle_preprocessing(subjects_map, subjects_map_after_preprocess, output_dir, invocation_dir)
 
-    if not preprocess_invo_dir.exists() or not any(preprocess_invo_dir.iterdir()):
+    # Handle unzipping
+    handle_unzipping(preprocess_output_dir, unziped_preprocess_dir)
 
-        ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
+    # Handle reference
+    ref_nii_name = handle_reference(ref_path)
 
-        BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+    # Handle registration
+    handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, ref_nii_name, args)
 
-    if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
-        unzip_images(preprocess_output_dir, unziped_preprocess_dir)
 
-    if ref_path.suffix == SUFFIX:
+# if __name__ == "__main__":
 
-        if not ref_nii.exists():
-            unzipper(ref_path, ref_path.parent)
-        ref_nii_name = ref_nii.name
+#     args = parse_args()
 
-    elif ref_path.suffix == NII or ref_nii.suffix == NII:
-        ref_nii_name = refrence
+#     input_dir = pathlib.Path(args.input_dir)
+#     output_dir = pathlib.Path(args.output_dir)
+#     invocation_dir = pathlib.Path(args.invocation_dir)
+#     sub_dirs = read_subjects_paths(args.input_subjects)
+#     input_subjects = args.input_subjects
+#     refrence = args.ref
+#     template_name = args.template_name
 
-    FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
-        dry_run=args.dry_run
-    )
+#     # think later about improving output and invo dirs for preprocess steps
+#     robustfov_input_dir = input_dir
+#     robustfov_output_dir = output_dir / "preprocess"
+#     robustfov_invocation_dir = invocation_dir / "robustfov"
+#     bet_invocation_dir = invocation_dir / "bet"
+#     bet_output_dir = robustfov_output_dir
 
-    FLIRT_MCA_registration(
-        subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=refrence, template_name=template_name
-    ).create_invocations(dry_run=args.dry_run)
+#     preprocess_output_dir = output_dir / "preprocess"
+#     preprocess_invo_dir = invocation_dir / "preprocess"
+#     unziped_preprocess_dir = output_dir / "preprocess_unzipped"
 
-    ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
-        False
-    )
-    ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
-        False
-    )
+#     # Create subject maps
+#     subjects_map = create_subject_map(input_dir, sub_dirs=sub_dirs)
+#     subjects_map_after_preprocess = updating_subject_map(subjects_map, preprocess_output_dir)
+#     subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
 
-    ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(False)
-    ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(False)
+#     ref_path = pathlib.Path(refrence)
+#     ref_nii = ref_path.with_suffix("")
 
-    SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir, ref=ref_nii_name, template_name=template_name).create_invocations()
-    SPM_MCA_registration(
-        subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca, ref=ref_nii_name, template_name=template_name
-    ).create_invocations()
+#     if not preprocess_invo_dir.exists() or not any(preprocess_invo_dir.iterdir()):
 
-    # # Handle unzipping preprocess directory
-    # unziped_preprocess_dir = output_dir / "preprocess_unzipped"
-    # # unzip_images(output_dir / "preprocess", unziped_preprocess_dir)
-    # subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
-    # software_configs = [
-    #     {"software": "ROBUSTFOV", "class": ROBUSTFOV_preprocessing, "output_subdir": "preprocess"},
-    #     {"software": "BET", "class": BET_preprocessing, "output_subdir": "bet", "params": {"f": 0.5}},
-    #     {"software": "FLIRT_IEEE", "class": FLIRT_IEEE_registration, "output_subdir": "flirt"},
-    #     {"software": "FLIRT_MCA", "class": FLIRT_MCA_registration, "output_subdir": "flirt", "params": {"n_mca": args.n_mca}},
-    #     {"software": "ANTS_IEEE", "class": ANTS_IEEE_registration, "output_subdir": "ants"},
-    #     {"software": "ANTS_MCA", "class": ANTS_MCA_registration, "output_subdir": "ants", "params": {"n_mca": args.n_mca}},
-    #     {"software": "SPM_IEEE", "class": SPM_IEEE_registration, "output_subdir": "spm", "subjects_map": subjects_map_after_unzip},
-    #     {"software": "SPM_MCA", "class": SPM_MCA_registration, "output_subdir": "spm",
-    #    "              params": {"n_mca": args.n_mca}, "subjects_map": subjects_map_after_unzip},
-    # ]
+#         ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
 
-    # for config in software_configs:
-    #     software_class = config["class"]
-    #     output_subdir = config["output_subdir"]
-    #     output_path = output_dir
-    #     invocation_path = invocation_dir
-    #     subjects_map_used = config.get("subjects_map",
-    #      subjects_map_after_preprocess)  # Default to preprocessed map, but can override for specific software
+#         BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
 
-    #     # Check for additional parameters
-    #     params = config.get("params", {})
-    #     software_instance = software_class(subjects_map_used, output_path, invocation_path, **params)
+#     if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
+#         unzip_images(preprocess_output_dir, unziped_preprocess_dir)
 
-    #     # Create invocations
-    #     software_instance.create_invocations(dry_run=args.dry_run)
+#     if ref_path.suffix == SUFFIX:
+
+#         if not ref_nii.exists():
+#             unzipper(ref_path, ref_path.parent)
+#         ref_nii_name = ref_nii.name
+
+#     elif ref_path.suffix == NII or ref_nii.suffix == NII:
+#         ref_nii_name = refrence
+
+#     FLIRT_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir,
+#           ref=refrence, template_name=template_name).create_invocations(
+#           dry_run=args.dry_run)
+
+#     FLIRT_MCA_registration(
+#         subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=refrence, template_name=template_name
+#     ).create_invocations(dry_run=args.dry_run)
+
+#     ANTS_IEEE_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
+#         False
+#     )
+#     ANTS_MCA_registration(subjects_map_after_preprocess, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(
+#         False
+#     )
+
+#     ANTS_IEEE_registration(subjects_map, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(False)
+#     ANTS_MCA_registration(subjects_map, output_dir, invocation_dir, ref=refrence, template_name=template_name).create_invocations(False)
+
+#     SPM_IEEE_registration(subjects_map_after_unzip, output_dir, invocation_dir, ref=ref_nii_name, template_name=template_name).create_invocations()
+#     SPM_MCA_registration(
+#         subjects_map_after_unzip, output_dir, invocation_dir, n_mca=args.n_mca, ref=ref_nii_name, template_name=template_name
+#     ).create_invocations()
