@@ -1,9 +1,15 @@
 [flake8]
 exclude =
+    .venv
     .git,
     __pycache__
+    lnrgst_mca.egg-info
+    build
+    lnrgst_mca/__pycache__
 max-complexity = 10
 max-line-length = 150
 extend-ignore =
     E712
     E741
+    F405
+    F403
