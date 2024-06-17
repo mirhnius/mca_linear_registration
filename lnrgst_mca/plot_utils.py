@@ -66,41 +66,40 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
     plt.show()
 
 
-def hist_plotter(data_1, data_2, title, labels=None, path=None, bins=[10, 10], s=10, ylable=None):
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from pathlib import Path
 
+
+def hist_plotter(datasets, title, labels=None, path=None, bins=10, s=10, ylable=None):
     if labels is None:
-        labels = ["Software 1", "Software 2"]
+        labels = [f"Software {str(i+1)}" for i in range(len(datasets))]
 
-    if data_1.ndim == 1:
-        data_1 = data_1.reshape(-1, 1)
-        data_2 = data_2.reshape(-1, 1)
+    for i, data in enumerate(datasets):
+        if data.ndim == 1:
+            data = data.reshape(-1, 1)
+        dims = data.shape[-1]
 
-    dims = data_1.shape[-1]
+        for j in range(dims):
+            plt.subplot(1, dims, j + 1)
+            plt.hist(data[:, j], alpha=0.2, bins=bins, label=labels[i])
+            median = np.median(data[:, j])
+            plt.axvline(median, linestyle="dashed", linewidth=1)
+            plt.text(median, plt.ylim()[1] / 2, f"Median: {median:.2f}", ha="right", rotation=90)
+            if j == 1 or (j == 0 and dims == 1):
+                plt.title(title)
+            plt.legend()
 
-    for i in range(dims):
-        plt.subplot(1, dims, i + 1)
-        plt.hist(data_1[:, i], color="r", alpha=0.2, bins=bins[0], label=labels[0])
-        plt.hist(data_2[:, i], color="b", alpha=0.2, bins=bins[1], label=labels[1])
-        median1 = np.median(data_1[:, i])
-        median2 = np.median(data_2[:, i])
-        plt.axvline(median1, color="r", linestyle="dashed", linewidth=1)
-        plt.axvline(median2, color="b", linestyle="dashed", linewidth=1)
-        plt.text(median1, plt.ylim()[1] / 2, f"Median: {median1:.2f}", color="r", ha="right", rotation=90)
-        plt.text(median2 * s, plt.ylim()[1] / 2, f"Median: {median2:.2f}", color="b", ha="left", rotation=90)
-        if i == 1 or (i == 0 and dims == 1):
-            plt.title(title)
-        plt.legend()
+            if ylable:
+                plt.ylabel(ylable)
 
-        if ylable:
-            plt.ylabel(ylable)
+            plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.75, hspace=0.75)
+            plt.tight_layout()
 
-        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.75, hspace=0.75)
-        plt.tight_layout()
-
-        if path:
-            create_directory(path)
-            plt.savefig(path / f"{title}.png")
-        plt.show()
+            if path:
+                create_directory(path)
+                plt.savefig(path / f"{title}.png")
+    plt.show()
 
 
 def generate_gif(images, filename, duration=200):
@@ -181,7 +180,7 @@ def make_gif(image_paths, subject_name, output_dir, duration=200, **kwargs):
 
 
 # add docstring for all of them and handel kwargs here
-def QC_plotter(paths_map, output_dir, template=None):
+def QC_plotter(paths_map, output_dir, plotter=slice_plotter, template=None, **kwargs):
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -197,6 +196,35 @@ def QC_plotter(paths_map, output_dir, template=None):
         subject_dir = mca_dir / subject
         subject_dir.mkdir(parents=True, exist_ok=True)
 
-        slice_plotter(paths_map[subject][MCA], template=template, title_prefix="", output_dir=subject_dir, display_mode="mosaic", levels=[0.4])
+        plotter(paths_map[subject][MCA], template=template, title_prefix="", output_dir=subject_dir, levels=[0.4], **kwargs)
 
-        slice_plotter(paths_map[subject][ORIGINAL], template=template, title_prefix="", output_dir=ieee_dir, display_mode="mosaic", levels=[0.4])
+        plotter(paths_map[subject][ORIGINAL], template=template, title_prefix="", output_dir=ieee_dir, levels=[0.4], **kwargs)
+
+
+# def QC_plots(
+#     input_parent_dir,
+#     output_parent_dir,
+#     templates,
+#     softwares=[SPM, FSL, ANTS],
+#     pattern=["_ses-BL", "_ses-BL", "_ses-BL0GenericAffine"],
+#     ext=[SUFFIX] * 3,
+#     ddof=12,
+#     **kwargs,
+# ):
+
+#     dof_dir = f"anat-{str(ddof)}dofs"
+#     for temp in templates:
+#         for index, soft in enumerate(softwares):
+#             try:
+#                 registered_image_dir = input_parent_dir / soft / temp / dof_dir
+#                 if not registered_image_dir.is_dir():
+#                     raise NotADirectoryError(f"The path '{registered_image_dir.name}' is not a directory")
+
+#                 paths_map = get_paths(registered_image_dir, pattern[index], ext[index])
+#                 output_QC = output_parent_dir / soft / temp / dof_dir
+#                 output_QC.mkdir(parents=True, exist_ok=True)
+
+#                 QC_plotter(paths_map, output_QC, template=None, **kwargs)
+
+#             except NotADirectoryError as e:
+#                 print(e)
