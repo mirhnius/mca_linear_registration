@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+from constants import *
 
 
 # add this to the load module
@@ -181,13 +182,14 @@ def make_gif(image_paths, subject_name, output_dir, duration=200, **kwargs):
 
 # add docstring for all of them and handel kwargs here
 def QC_plotter(paths_map, output_dir, template=None):
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    ieee_dir = output_dir / "ieee"
+    ieee_dir = output_dir / ORIGINAL
     ieee_dir.mkdir(parents=True, exist_ok=True)
 
-    mca_dir = output_dir / "mca"
+    mca_dir = output_dir / MCA
     mca_dir.mkdir(parents=True, exist_ok=True)
 
     for subject in paths_map.keys():
@@ -195,6 +197,6 @@ def QC_plotter(paths_map, output_dir, template=None):
         subject_dir = mca_dir / subject
         subject_dir.mkdir(parents=True, exist_ok=True)
 
-        slice_plotter(paths_map[subject]["mca"], template=template, title_prefix="", output_dir=subject_dir, display_mode="mosaic", levels=[0.4])
+        slice_plotter(paths_map[subject][MCA], template=template, title_prefix="", output_dir=subject_dir, display_mode="mosaic", levels=[0.4])
 
-        slice_plotter(paths_map[subject]["ieee"], template=template, title_prefix="", output_dir=ieee_dir, display_mode="mosaic", levels=[0.4])
+        slice_plotter(paths_map[subject][ORIGINAL], template=template, title_prefix="", output_dir=ieee_dir, display_mode="mosaic", levels=[0.4])
