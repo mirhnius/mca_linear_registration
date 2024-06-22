@@ -58,7 +58,7 @@
     ],
     "container-image": {
         "type": "docker",
-        "image": "spm12_octave_new",
+        "image": "spm12_octave",
         "index": "index.docker.io"
     }
 }
