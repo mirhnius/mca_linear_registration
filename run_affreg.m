@@ -1,4 +1,4 @@
-function run_affreg_in_memory(source_img, template_img, output_img_path, output_matrix_path)
+function run_affreg(source_img, template_img, output_img_path, output_matrix_path)
     % Add SPM to the MATLAB path
     addpath(genpath('/opt/spm12'))
 
