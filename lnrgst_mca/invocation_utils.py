@@ -298,9 +298,9 @@ class Registration(Preprocessing):
 
         Parameters:
             subjects_maps (Dict): A dictionary mapping subjects to their scans and associated data.
-            output_dir (pathlib.Path): The directory where the output FLIRT files will be saved.
+            output_dir (pathlib.Path): The directory where the output registration files will be saved.
             invocation_dir (pathlib.Path): The directory where the invocations will be saved.
-            ref (str): The reference file for FLIRT. Default is MNI152.
+            ref (str): The reference file for registration. Default is MNI152.
             dof (int): The degrees of freedom. Default is 12.
         """
         super().__init__(subjects_maps, output_dir, invocation_dir)
@@ -442,7 +442,7 @@ class ANTS_IEEE_registration(Registration):
             subject (Dict): A dictionary containing details of the subject, including the input path.
 
         Returns:
-            Dict: FLIRT invocation parameters including input file, reference file, output prefix, and registration mode.
+            Dict: ANTS invocation parameters including input file, reference file, output prefix, and registration mode.
         """
 
         in_file = subject["input_path"]
