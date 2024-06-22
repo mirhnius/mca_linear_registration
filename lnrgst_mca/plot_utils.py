@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
-from constants import *
+from lnrgst_mca.constants import *
 
 
 # add this to the load module
@@ -66,39 +66,38 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
     plt.show()
 
 
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from pathlib import Path
-
-
-def hist_plotter(datasets, title, labels=None, path=None, bins=10, s=10, ylable=None):
+def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None):
+    n = len(datasets)
     if labels is None:
         labels = [f"Software {str(i+1)}" for i in range(len(datasets))]
 
+    if bins is None:
+        bins = n * [10]
+
+    if dists is None:
+        dists = n * [1]
+
+    direction = ["left", "right"]
+    plt.figure()
     for i, data in enumerate(datasets):
+
         if data.ndim == 1:
             data = data.reshape(-1, 1)
-        dims = data.shape[-1]
+        hist_data = plt.hist(data, alpha=0.5, bins=bins[i], label=labels[i])
+        color = hist_data[2][0].get_facecolor()
+        median = np.median(data)
+        plt.axvline(median, linestyle="dashed", color=color, linewidth=1)
+        plt.text(median, dists[i] + plt.ylim()[1] / 2, f"Median: {median:.2f}", ha=direction[i % 2], rotation=90)
 
-        for j in range(dims):
-            plt.subplot(1, dims, j + 1)
-            plt.hist(data[:, j], alpha=0.2, bins=bins, label=labels[i])
-            median = np.median(data[:, j])
-            plt.axvline(median, linestyle="dashed", linewidth=1)
-            plt.text(median, plt.ylim()[1] / 2, f"Median: {median:.2f}", ha="right", rotation=90)
-            if j == 1 or (j == 0 and dims == 1):
-                plt.title(title)
-            plt.legend()
+    plt.title(title)
+    plt.legend()
 
-            if ylable:
-                plt.ylabel(ylable)
+    if xlabel:
+        plt.xlabel(xlabel)
 
-            plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.75, hspace=0.75)
-            plt.tight_layout()
-
-            if path:
-                create_directory(path)
-                plt.savefig(path / f"{title}.png")
+    if path:
+        create_directory(path)
+        plt.savefig(path / f"{title}.png")
     plt.show()
 
 
@@ -198,7 +197,7 @@ def QC_plotter(paths_map, output_dir, plotter=slice_plotter, template=None, **kw
 
         plotter(paths_map[subject][MCA], template=template, title_prefix="", output_dir=subject_dir, levels=[0.4], **kwargs)
 
-        plotter(paths_map[subject][ORIGINAL], template=template, title_prefix="", output_dir=ieee_dir, levels=[0.4], **kwargs)
+        plotter([paths_map[subject][ORIGINAL]], template=template, title_prefix="", output_dir=ieee_dir, levels=[0.4], **kwargs)
 
 
 # def QC_plots(
