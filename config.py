@@ -1,9 +1,13 @@
 from pathlib import Path
 from lnrgst_mca.load_utils import get_paths, get_matrices
+from lnrgst_mca.constants import ANTS, FLIRT, SPM
 
+MAD_bin_sizes = {FLIRT: {"mni152": [5, 5]}, ANTS: {"mni152": [15, 10]}, SPM: {"mni152": [15, 10]}}
+FD_sd_bin_sizes = {FLIRT: {"mni152": [10, 10]}, ANTS: {"mni152": [10, 1]}, SPM: {"mni152": [50, 5]}}
+FD_mean_bin_sizes = {FLIRT: {"mni152": [10, 10]}, ANTS: {"mni152": [10, 1]}, SPM: {"mni152": [15, 10]}}
 
 configurations = {
-    "FSL": {
+    FLIRT: {
         "mni152": {
             "failed_subjects_HC": ["sub-116230", "sub-4079", "sub-3620"],
             "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
@@ -15,7 +19,7 @@ configurations = {
             "pattern_HC": "_ses-BL",
         }
     },
-    "ANTS": {
+    ANTS: {
         "mni152": {
             "failed_subjects_HC": ["sub-116230", "sub-3620"],
             "failed_subjects_PD": [],
@@ -27,7 +31,7 @@ configurations = {
             "pattern_HC": "_ses-BL0GenericAffine",
         }
     },
-    "SPM": {
+    SPM: {
         "mni152": {
             "failed_subjects_HC": [
                 "sub-116230",
