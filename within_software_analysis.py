@@ -1,7 +1,8 @@
-from lnrgst_mca.plot_utils import plotter
+from lnrgst_mca.plot_utils import plotter, hist_plotter
 from lnrgst_mca import metrics_utils
-from config import get_configurations
+from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes
 from copy import deepcopy
+from scipy import stats
 import numpy as np
 import argparse
 
@@ -75,6 +76,14 @@ def concatenate_mca_matrices(mat_dic):
     return np.stack(mca_matrices)
 
 
+def concatenate_cohorts(g1, g2):
+    if len(g1) == 0:
+        return g2
+    if len(g2) == 0:
+        return g2
+    return np.concatenate([g1, g2])
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -86,7 +95,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
     template = args.template
     software = args.software
-    diagram_path = Path(args.diagram_path)
+    diagram_path = Path(args.diagram_path) / software / template
+    diagram_path.mkdir(parents=True, exist_ok=True)
+
+    if software not in FD_mean_bin_sizes or software not in FD_sd_bin_sizes:
+        raise ValueError(f"unknown software {software}")
+
+    if template not in FD_mean_bin_sizes[software].keys() or template not in FD_sd_bin_sizes[software].keys():
+        print(FD_mean_bin_sizes[software].keys())
+        raise ValueError(f"unknown template {template}")
 
     # add something to check validity of s and t
     # loading subject matrix dictonaries and list of failed subjects
@@ -270,8 +287,28 @@ if __name__ == "__main__":
     basic_info_plotter(
         result_all_PD, result_all_HC, software=software, variable="Framewise Displacement All", path=diagram_path, figure_size=(5, 4), ylable="(mm)"
     )
+
+    all_fd_mca_failed = concatenate_cohorts(result_failed_PD, result_failed_HC)
+    all_fd_mca_fine = concatenate_cohorts(result_fine_PD, result_fine_HC)
+
+    hist_plotter(
+        datasets=[np.mean(all_fd_mca_fine, axis=1), np.mean(all_fd_mca_failed, axis=1)],
+        title=f"Mean FD: {software} - {template}",
+        path=diagram_path,
+        bins=FD_mean_bin_sizes[software][template],
+        labels=["Passed", "failed"],
+    )
+    hist_plotter(
+        datasets=[np.std(all_fd_mca_fine, axis=1), np.std(all_fd_mca_failed, axis=1)],
+        title=f"SD of  FD: {software} - {template}",
+        path=diagram_path,
+        bins=FD_sd_bin_sizes[software][template],
+        labels=["Passed", "failed"],
+    )
+
     # saving FD
-    path = diagram_path.parent
+    # path = diagram_path.parent
+    path = diagram_path
     np.savetxt(path / f"{software}_FD_PD_all.txt", result_all_PD)
     np.savetxt(path / f"{software}_FD_HC_all.txt", result_all_HC)
 
@@ -300,6 +337,15 @@ if __name__ == "__main__":
     mad_all_PD = metrics_utils.mean_absolute_difference(result_all_PD, result_all_ieee_PD)
     mad_all_HC = metrics_utils.mean_absolute_difference(result_all_HC, result_all_ieee_HC)
 
+    all_mad_failed = concatenate_cohorts(mad_failed_PD, mad_failed_HC)
+    all_mad_fine = concatenate_cohorts(mad_fine_PD, mad_fine_HC)
+    hist_plotter(
+        datasets=[all_mad_fine, all_mad_failed],
+        title=f"Mean Absolute Difference of FD: {software} - {template}",
+        path=diagram_path,
+        labels=["Fine", "Failed"],
+    )
+
     # saving MAD
     np.savetxt(path / f"{software}_mad_fine_PD.txt", mad_fine_PD)
     np.savetxt(path / f"{software}_mad_fine_HC.txt", mad_fine_HC)
@@ -309,3 +355,15 @@ if __name__ == "__main__":
 
     np.savetxt(path / f"{software}_mad_all_PD.txt", mad_all_PD)
     np.savetxt(path / f"{software}_mad_all_HC.txt", mad_all_HC)
+
+    # Printing information
+
+    t, p = stats.ttest_ind(np.log(np.std(result_all_PD, axis=1)), np.log(np.std(result_all_HC, axis=1)))
+    t_fine, p_fine = stats.ttest_ind(np.log(np.std(result_fine_PD, axis=1)), np.log(np.std(result_fine_HC, axis=1)))
+
+    print(f"t:{t:.3f} p:{p:.3f}")
+    print(f"t_fine:{t_fine:.3f} p_fine:{p_fine:.3f}")
+    print(f"Mean of Mean Absolute error in fine registrations across subjects: {np.mean(all_mad_fine)}")
+    print(f"Mean of  Mean Absolute error in failed registrations across subjects: {np.mean(all_mad_failed)}")
+    print(f"Max Mean Absolute error in fine registrations across subjects: {np.max(all_mad_fine)}")
+    print(f"Max Mean Absolute error in failed registrations across subjects: {np.max(all_mad_failed)}")
