@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH --job-name=mca_spm_HC
-#SBATCH --output=mca_spm_HC.out
-#SBATCH --error=mca_spm_HC.err
+#SBATCH --job-name=mca_spm_PD_2009cSym
+#SBATCH --output=mca_spm_PD_2009cSym.out
+#SBATCH --error=mca_spm_PD_2009cSym.err
 #SBATCH --time=2:30:0
 #SBATCH --ntasks=50
 #SBATCH --mem-per-cpu=2G
@@ -14,4 +14,6 @@ source /home/niusham/py11/bin/activate
 
 
 # parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/spm12_octave_fuzzy_latest.sif ./descriptors/Run_affreg.json ./{1}" ::: ./pipline/pd/invocations/spm/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
-parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/spm12_octave_new_latest.sif ./descriptors/Run_affreg.json ./{1}" ::: ./pipline/hc/invocations/spm/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
+# parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/spm12_octave_new_latest.sif ./descriptors/Run_affreg.json ./{1}" ::: ./pipline/hc/invocations/spm/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
+# parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/spm12_octave_new_latest.sif ./descriptors/Run_affreg.json ./{1}" ::: ./pipline/hc/invocations/spm/MNI152NLin2009cSym_res-1/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
+parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/spm12_octave_new_latest.sif ./descriptors/Run_affreg.json ./{1}" ::: ./pipline/pd/invocations/spm/MNI152NLin2009cSym_res-1/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
