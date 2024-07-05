@@ -21,15 +21,12 @@ def QC_plots(
     **kwargs,
 ):
     if pattern is None:
-        pattern = []
         try:
-            pattern.extend(SUFFIX_PATTERNS[s] for s in softwares)
+            pattern = [SUFFIX_PATTERNS[s] for s in softwares]
         except Exception as e:
             raise RuntimeError(f"The software in the list is not supported: {e}") from e
-
-    if pattern is None:
-        pattern = [SUFFIX] * len(softwares)
-
+    if ext is None:
+        ext = [SUFFIX] * len(softwares)
     # add something to check if len temp_name=tem_path
     dof_dir = f"anat-{str(ddof)}dofs"
     for i, temp_name in enumerate(templates_names):
@@ -37,7 +34,7 @@ def QC_plots(
             try:
                 registered_image_dir = input_parent_dir / soft / temp_name / dof_dir
                 if not registered_image_dir.is_dir():
-                    raise NotADirectoryError(f"The path '{registered_image_dir.name}' is not a directory")
+                    raise NotADirectoryError(f"The path '{registered_image_dir}' is not a directory")
 
                 paths_map = get_paths(registered_image_dir, sub_list_path, pattern=pattern[index], ext=ext[index])
                 output_QC = output_parent_dir / soft / temp_name / dof_dir
@@ -57,13 +54,13 @@ def parse_args():
     )
     # required = parser.add_argument_group('Required arguments')
     parser.add_argument("-t", "--template", nargs="+", type=str, required=True, default=template, help="templates' paths")
-    parser.add_argument("-s", "--software", nargs="+", type=str, required=True, help="softwares' paths")
+    parser.add_argument("-s", "--software", nargs="+", type=str, default=None, help="softwares' names")
     parser.add_argument("-i", "--input", type=str, nargs="+", required=True, help="path to input directories")
     parser.add_argument("-o", "--output", type=str, nargs="+", required=True, help="path to save output plots")
     parser.add_argument("-t_n", "--template_name", nargs="+", default=None, type=str, help="templates' names")
     parser.add_argument("-l", "--subject_list", nargs="+", default=None, type=str, help="tlist of subjects")
 
-    return parser.add_argument()
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
@@ -71,7 +68,7 @@ if __name__ == "__main__":
     templates = args.template
     softwares = args.software
     inputs = args.input
-    outputs = args.template_name
+    outputs = args.output
     subject_lists = args.subject_list
     template_names = args.template_name
 
@@ -86,13 +83,15 @@ if __name__ == "__main__":
 
     for i in range(len(inputs)):
 
-        QC_plots(Path(outputs[i]), Path(subject_lists[i]), Path(outputs[i]), template_names, templates, softwares, [SUFFIX], display_mode="mosaic")
+        QC_plots(
+            input_parent_dir=Path(inputs[i]),
+            sub_list_path=Path(subject_lists[i]),
+            output_parent_dir=Path(outputs[i]),
+            templates_names=template_names,
+            templates_paths=templates,
+            softwares=softwares,
+            display_mode="mosaic",
+        )
 
-    # QC_plots(outputs_path_PD, sub_list_path_PD, Path("./test/pd"),
-    # [''], [template], [FLIRT], ["_ses-BL", "_ses-BLWarped"], [SUFFIX]*2, display_mode="mosaic")
-#   _ses-BLWarped
-# intputs_path_HC = Path("./pipline/hc/outputs")
-# sub_list_path_HC = Path("./HC_selected_subjects.txt")
-
-# outputs_path_PD = Path("./pipline/pd/outputs")
-# sub_list_path_PD = Path("./PD_selected_subjects.txt")
+        # fix the extra nii.gz in the names
+        # add the option to get QC result only for ieee
