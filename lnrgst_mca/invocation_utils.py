@@ -348,7 +348,7 @@ class FLIRT_IEEE_registration(Registration):
             "in_file": str(in_file),
             "out_filename": str(out_file),
             "reference": str(self.ref),
-            "out_matrix_filename": str(out_matrix_file),
+            "out_mat_filename": str(out_matrix_file),
             "dof": self.dofs,
         }
 
@@ -662,17 +662,17 @@ def handle_unzipping(preprocess_output_dir, unziped_preprocess_dir):
 
 def handle_reference(ref_path):
     ref_nii = ref_path.with_suffix("")
-    if ref_path.suffix == SUFFIX:
+    if ref_path.suffix == GZ:
         if not ref_nii.exists():
             unzipper(ref_path, ref_path.parent)
-        return ref_nii.name
-    elif ref_path.suffix == NII or ref_nii.suffix == NII:
+        return ref_nii
+    elif ref_path.suffix == NII:
         return str(ref_path)
     else:
-        return str(ref_path)
+        raise ValueError(f"{ref_path.name} has an unsupported format")
 
 
-def handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, ref_nii_name, args):
+def handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, args):
     FLIRT_IEEE_registration(
         subjects_map_after_preprocess, output_dir, invocation_dir, ref=args.ref, template_name=args.template_name
     ).create_invocations(dry_run=args.dry_run)
@@ -685,6 +685,7 @@ def handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip,
     ANTS_MCA_registration(
         subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=args.ref, template_name=args.template_name
     ).create_invocations(dry_run=args.dry_run)
+    ref_nii_name = handle_reference(pathlib.Path(args.ref))
     SPM_IEEE_registration(
         subjects_map_after_unzip, output_dir, invocation_dir, ref=ref_nii_name, template_name=args.template_name
     ).create_invocations(dry_run=args.dry_run)
@@ -722,4 +723,4 @@ if __name__ == "__main__":
     ref_nii_name = handle_reference(ref_path)
 
     # Handle registration
-    handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, ref_nii_name, args)
+    handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, args)
