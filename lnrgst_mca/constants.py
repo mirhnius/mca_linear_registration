@@ -14,8 +14,11 @@ ANTS = "ants"
 SPM = "spm"
 MAT = ".mat"
 NII = ".nii"
+GZ = ".gz"
 
-SUFFIX_PATTERNS = {SPM: "_ses-BL", FLIRT: "_ses-BL", ANTS: "_ses-BL0GenericAffine"}
+# combine it later
+SUFFIX_PATTERNS = {SPM: "_ses-BL", FLIRT: "_ses-BL", ANTS: "_ses-BLWarped"}
+SUFFIX_PATTERNS_MAT = {SPM: "_ses-BL", FLIRT: "_ses-BL", ANTS: "_ses-BL0GenericAffine"}
 
 PATTERN = pathlib.Path("") / "sub-*" / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
 REF = pathlib.Path.cwd().parent.parent / "tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii.gz"
