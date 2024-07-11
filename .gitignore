@@ -9,8 +9,10 @@
 *.nii.gz
 *.json
 
+QC
 test
 test_ppmi_hc
+testing_incovation_creator
 invocations*
 spm_ieee
 anat*
