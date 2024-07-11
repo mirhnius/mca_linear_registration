@@ -66,7 +66,7 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
     plt.show()
 
 
-def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None):
+def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None, coordinates=None):
     n = len(datasets)
     if labels is None:
         labels = [f"Software {str(i+1)}" for i in range(len(datasets))]
@@ -75,7 +75,7 @@ def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None
         bins = n * [10]
 
     if dists is None:
-        dists = n * [1]
+        dists = [0 for i in range(1, n + 1)]
 
     direction = ["left", "right"]
     plt.figure()
@@ -87,7 +87,11 @@ def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None
         color = hist_data[2][0].get_facecolor()
         median = np.median(data)
         plt.axvline(median, linestyle="dashed", color=color, linewidth=1)
-        plt.text(median, dists[i] + plt.ylim()[1] / 2, f"Median: {median:.2f}", ha=direction[i % 2], rotation=90)
+        if coordinates:
+            plt.text(coordinates[0], dists[i] + coordinates[1], f"{labels[i]}'s median: {median:.2e}", fontsize=10)
+        else:
+            plt.text(median, (dists[i] + (plt.ylim()[1] / 2)), f"{labels[i]}'s median: {median:.2e}", fontsize=10, ha=direction[i % 2], rotation=90)
+        # {median:.2f}
 
     plt.title(title)
     plt.legend()
