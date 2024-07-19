@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from lnrgst_mca.plot_utils import hist_plotter
 from pathlib import Path
 
@@ -38,7 +39,7 @@ def same_template_plots(templates, data, path, coordinates=None, std_bins=None, 
     for template in templates:
         same_template_data_mean = [np.mean(data[software][template], axis=1) for software in data.keys()]
         same_template_data_std = [np.std(data[software][template], axis=1) for software in data.keys()]
-        print(same_template_data_mean)
+
         hist_plotter(
             datasets=same_template_data_mean,
             title=f"Mean FD: different softwares - {template}",
@@ -76,58 +77,9 @@ def same_software_plots(templates, data, path, labels=None, std_bins=None, mean_
         )
 
 
-if __name__ == "__main__":
+def remove_failed_ids_by_software(d, parent_path, fine_IDs):
 
-    # func = lambda t, s: f"{t}_FD_HC_fine.txt"
-    def func_HC(t, s):
-        return f"{t}_FD_HC_fine.txt"
-
-    def func_PD(t, s):
-        return f"{t}_FD_PD_fine.txt"
-
-    parent_path = Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/outputs_plots/diagrams")
-    data = read_all_versions(parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01"], [func_HC, func_PD])
-    data = read_all_versions(parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_HC, func_PD])
-    same_template_plots(
-        ["MNI152NLin2009cAsym_res-01"],
-        data,
-        Path("./outputs_plots/between_plots"),
-        coordinates=[[200, 40], [7, 40]],
-        std_bins=[1, 1, 25],
-        mean_bins=[3, 15, 2],
-        dists=[5, 10, 15],
-    )
-    same_template_plots(
-        ["MNI152NLin2009cSym_res-1"],
-        data,
-        Path("./outputs_plots/between_plots"),
-        coordinates=[[80, 10], [7, 40]],
-        std_bins=[1, 1, 25],
-        mean_bins=[5, 5, 5],
-        dists=[5, 10, 15],
-    )  # dists=[-23, -5, 10]
-
-    same_software_plots(
-        ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
-        data,
-        Path("./outputs_plots/between_templates"),
-        labels=["2009cAsym", "2009cSym"],
-        dists=[-10, -10],
-    )
-
-    def func_fd_passed(s, t):
-        return "FD_fine_all.txt"
-
-    data = read_all_versions(
-        parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed], dtype=float
-    )
-
-    def func_fd_passed_IDs(s, t):
-        return "IDs_fine_all.txt"
-
-    fine_IDs = read_all_versions(
-        parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed_IDs], str
-    )
+    data = copy.deepcopy(d)
     IDs_to_remove = {}
     for s in data.keys():
         templates = list(data[s].keys())
@@ -147,24 +99,12 @@ if __name__ == "__main__":
             indices = np.where(mask)[0]
             data[s][t] = np.delete(data[s][t], indices, axis=0)
 
-    all_templates = ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"]
-    combos = list(combinations(range(len(all_templates)), 2))
+    return data
 
-    for comb in combos:
-        for s in data.keys():
-            g1, g2 = data[s][all_templates[comb[0]]], data[s][all_templates[comb[1]]]
-            if g1 is None or g2 is None:
-                continue
 
-            t, p = stats.ttest_rel(np.log(np.std(g1, axis=1)), np.log(np.std(g2, axis=1)))
-            print(f"software:{s} between templates: {templates[comb[0]]} - {templates[comb[1]]}")
-            print(f"t:{t} p{p}")
+def remove_failed_ids_by_template(d, parent_path, fine_IDs, all_templates, all_softwares):
 
-    all_softwares = ["spm", "flirt", "ants"]
-    combos = list(combinations(range(len(all_softwares)), 2))
-    data = read_all_versions(
-        parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed], dtype=float
-    )
+    data = copy.deepcopy(d)
     IDs_to_remove = {}
     for t in all_templates:
         failed_ids_set = set()
@@ -182,15 +122,125 @@ if __name__ == "__main__":
             indices = np.where(mask)[0]
             data[s][t] = np.delete(data[s][t], indices, axis=0)
 
-    all_softwares = ["spm", "flirt", "ants"]
-    combos = list(combinations(range(len(all_softwares)), 2))
+    return data
+
+
+def perform_t_tests_same_software(data, all_templates, all_softwares):
+
+    combos = list(combinations(range(len(all_templates)), 2))
+    results = []
 
     for comb in combos:
-        for t in templates:
+        for s in all_softwares:
+            g1, g2 = data[s][all_templates[comb[0]]], data[s][all_templates[comb[1]]]
+            if g1 is None or g2 is None:
+                continue
+
+            t, p = stats.ttest_rel(np.log(np.std(g1, axis=1)), np.log(np.std(g2, axis=1)))
+            results.append((s, all_templates[comb[0]], all_templates[comb[1]], t, p))
+
+    return results
+
+
+def perform_t_tests_same_templates(data, all_templates, all_softwares):
+
+    combos = list(combinations(range(len(all_softwares)), 2))
+    results = []
+
+    for comb in combos:
+        for t in all_templates:
             g1, g2 = data[all_softwares[comb[0]]][t], data[all_softwares[comb[1]]][t]
             if g1 is None or g2 is None:
                 continue
 
             t_, p = stats.ttest_rel(np.log(np.std(g1, axis=1)), np.log(np.std(g2, axis=1)))
-            print(f"templates:{t} between softwares: {all_softwares[comb[0]]} - {all_softwares[comb[1]]}")
-            print(f"t:{t_} p:{p}")
+            results.append((t, all_softwares[comb[0]], all_softwares[comb[1]], t_, p))
+
+    return results
+
+
+def print_t_test_results_for_same_software(results):
+    print("**********************************************")
+    for result in results:
+        s, t1, t2, t, p = result
+        print(f"software:{s} between templates: {t1} - {t2}")
+        print(f"t:{t:.2e} p:{p:.2e}")
+    print("**********************************************")
+
+
+def print_t_test_results_for_same_template(results):
+    print("**********************************************")
+    for result in results:
+        t, s1, s2, t_, p = result
+        print(f"templates:{t} between softwares: {s1} - {s2}")
+        print(f"t:{t_:.2e} p:{p:.2e}")
+    print("**********************************************")
+
+
+if __name__ == "__main__":
+
+    def func_HC(t, s):
+        return f"{t}_FD_HC_fine.txt"
+
+    def func_PD(t, s):
+        return f"{t}_FD_PD_fine.txt"
+
+    parent_path = Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/outputs_plots/diagrams")
+    softwares = ["spm", "flirt", "ants"]
+    templates = ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"]
+    data = read_all_versions(parent_path, softwares, templates, [func_HC, func_PD])
+
+    same_template_plots(
+        ["MNI152NLin2009cAsym_res-01"],
+        data,
+        Path("./outputs_plots/between_plots"),
+        coordinates=[[200, 40], [7, 40]],
+        std_bins=[1, 1, 25],
+        mean_bins=[3, 15, 2],
+        dists=[5, 10, 15],
+    )
+
+    same_template_plots(
+        ["MNI152NLin2009cSym_res-1"],
+        data,
+        Path("./outputs_plots/between_plots"),
+        coordinates=[[80, 10], [7, 40]],
+        std_bins=[1, 1, 25],
+        mean_bins=[5, 5, 5],
+        dists=[5, 10, 15],
+    )
+
+    same_software_plots(
+        ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
+        data,
+        Path("./outputs_plots/between_templates"),
+        labels=["2009cAsym", "2009cSym"],
+        dists=[-10, -10],
+    )
+
+    def func_fd_passed(s, t):
+        return "FD_fine_all.txt"
+
+    data = read_all_versions(parent_path, softwares, templates, [func_fd_passed], dtype=float)
+
+    def func_fd_passed_IDs(s, t):
+        return "IDs_fine_all.txt"
+
+    fine_IDs = read_all_versions(parent_path, softwares, templates, [func_fd_passed_IDs], str)
+
+    data_for_software_comparison = remove_failed_ids_by_template(data, parent_path, fine_IDs, templates, softwares)
+    same_template_results = perform_t_tests_same_templates(data_for_software_comparison, templates, softwares)
+    print_t_test_results_for_same_template(same_template_results)
+
+    data_for_template_comparison = remove_failed_ids_by_software(data, parent_path, fine_IDs)
+    same_software_results = perform_t_tests_same_software(data_for_template_comparison, templates, softwares)
+    print_t_test_results_for_same_software(same_software_results)
+
+    def func_fd_all(s, t):
+        return "FD_all.txt"
+
+    data = read_all_versions(parent_path, softwares, templates, [func_fd_all], dtype=float)
+    same_template_results = perform_t_tests_same_templates(data, templates, softwares)
+    print_t_test_results_for_same_template(same_template_results)
+    same_software_results = perform_t_tests_same_software(data, templates, softwares)
+    print_t_test_results_for_same_software(same_software_results)
