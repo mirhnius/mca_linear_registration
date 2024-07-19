@@ -2,11 +2,11 @@ import numpy as np
 from lnrgst_mca.plot_utils import hist_plotter
 from pathlib import Path
 
-# from itertools import combinations
-# from scipy import stats
+from itertools import combinations
+from scipy import stats
 
 
-def read_all_versions(parent_path, softwares, templates, name_patterns, dtype=int):
+def read_all_versions(parent_path, softwares, templates, name_patterns, dtype=float):
     parent_path = Path(parent_path)
     data = {software: {template: None for template in templates} for software in softwares}
 
@@ -18,7 +18,7 @@ def read_all_versions(parent_path, softwares, templates, name_patterns, dtype=in
                 path = parent_path / software / template / name
                 # "arrays" /
                 if path.exists():
-                    data_list.append(np.genfromtxt(path, dtype))
+                    data_list.append(np.loadtxt(path, dtype=dtype))
             if data_list:
                 data[software][template] = np.concatenate(data_list)
 
@@ -87,78 +87,110 @@ if __name__ == "__main__":
 
     parent_path = Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/outputs_plots/diagrams")
     data = read_all_versions(parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01"], [func_HC, func_PD])
-    # data = read_all_versions(parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_HC, func_PD])
-    # same_template_plots(
-    #     ["MNI152NLin2009cAsym_res-01"],
-    #     data,
-    #     Path("./outputs_plots/between_plots"),
-    #     coordinates=[[200, 40], [7, 40]],
-    #     std_bins=[1, 1, 25],
-    #     mean_bins=[3, 15, 2],
-    #     dists=[5, 10, 15],
-    # )
-    # same_template_plots(
-    #     ["MNI152NLin2009cSym_res-1"],
-    #     data,
-    #     Path("./outputs_plots/between_plots"),
-    #     coordinates=[[80, 10], [7, 40]],
-    #     std_bins=[1, 1, 25],
-    #     mean_bins=[5, 5, 5],
-    #     dists=[5, 10, 15],
-    # )  # dists=[-23, -5, 10]
+    data = read_all_versions(parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_HC, func_PD])
+    same_template_plots(
+        ["MNI152NLin2009cAsym_res-01"],
+        data,
+        Path("./outputs_plots/between_plots"),
+        coordinates=[[200, 40], [7, 40]],
+        std_bins=[1, 1, 25],
+        mean_bins=[3, 15, 2],
+        dists=[5, 10, 15],
+    )
+    same_template_plots(
+        ["MNI152NLin2009cSym_res-1"],
+        data,
+        Path("./outputs_plots/between_plots"),
+        coordinates=[[80, 10], [7, 40]],
+        std_bins=[1, 1, 25],
+        mean_bins=[5, 5, 5],
+        dists=[5, 10, 15],
+    )  # dists=[-23, -5, 10]
 
-    # same_software_plots(["MNI152NLin2009cAsym_res-01",
-    # "MNI152NLin2009cSym_res-1"],data, Path("./outputs_plots/between_templates"),  labels=["2009cAsym", "2009cSym"], dists=[-10,-10])
-    # def func_fd_passed(s, t):
-    #     return "FD_fine_all.txt"
+    same_software_plots(
+        ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
+        data,
+        Path("./outputs_plots/between_templates"),
+        labels=["2009cAsym", "2009cSym"],
+        dists=[-10, -10],
+    )
 
-    # data = read_all_versions(parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed])
+    def func_fd_passed(s, t):
+        return "FD_fine_all.txt"
 
-    # def func_fd_passed_IDs(s, t):
-    #     return "IDs_fine_all.txt"
+    data = read_all_versions(
+        parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed], dtype=float
+    )
 
-    # fine_IDs = read_all_versions(
-    #     parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed_IDs], str
-    # )
-    # IDs_to_remove = {}
-    # for s in data.keys():
-    #     templates = list(data[s].keys())
-    #     failed_ids_set = set()
-    #     for t in templates:
-    #         path = parent_path / s / t / "IDs_failed_all.txt"
-    #         if path.exists():
-    #             failed_ids_set.update(np.loadtxt(path, dtype=str))
-    #     IDs_to_remove[s] = failed_ids_set
+    def func_fd_passed_IDs(s, t):
+        return "IDs_fine_all.txt"
 
-    # for s in data.keys():
-    #     templates = list(data[s].keys())
-    #     for t in templates:
-    #         if IDs_to_remove is None or data[s][t] is None:
-    #             continue
-    #         mask = np.isin(fine_IDs[s][t], IDs_to_remove)
-    #         indices = np.where(mask)[0]
-    #         data[s][t] = np.delete(data[s][t], indices)
+    fine_IDs = read_all_versions(
+        parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed_IDs], str
+    )
+    IDs_to_remove = {}
+    for s in data.keys():
+        templates = list(data[s].keys())
+        failed_ids_set = set()
+        for t in templates:
+            path = parent_path / s / t / "IDs_failed_all.txt"
+            if path.exists():
+                failed_ids_set.update(np.loadtxt(path, dtype=str))
+        IDs_to_remove[s] = failed_ids_set
 
-    # all_templates = ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"]
-    # combos = list(combinations(range(len(all_templates)), 2))
+    for s in data.keys():
+        templates = list(data[s].keys())
+        for t in templates:
+            if IDs_to_remove is None or data[s][t] is None:
+                continue
+            mask = np.isin(fine_IDs[s][t], list(IDs_to_remove[s]))
+            indices = np.where(mask)[0]
+            data[s][t] = np.delete(data[s][t], indices, axis=0)
 
-    # for comb in combos:
-    #     for s in data.keys():
-    #         g1, g2 = data[s][all_templates[comb[0]]], data[s][all_templates[comb[1]]]
-    #         if g1 is None or g2 is None:
-    #             continue
+    all_templates = ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"]
+    combos = list(combinations(range(len(all_templates)), 2))
 
-    #         t, p = stats.ttest_rel(g1, g2)
-    #         print(f"software:{s} between templates: {templates[comb[0]]} - {templates[comb[1]]}")
+    for comb in combos:
+        for s in data.keys():
+            g1, g2 = data[s][all_templates[comb[0]]], data[s][all_templates[comb[1]]]
+            if g1 is None or g2 is None:
+                continue
 
-    # all_softwares = ["spm", "flirt", "ants"]
-    # combos = list(combinations(range(len(all_softwares)), 2))
+            t, p = stats.ttest_rel(np.log(np.std(g1, axis=1)), np.log(np.std(g2, axis=1)))
+            print(f"software:{s} between templates: {templates[comb[0]]} - {templates[comb[1]]}")
+            print(f"t:{t} p{p}")
 
-    # for comb in combos:
-    #     for t in templates:
-    #         g1, g2 = data[all_softwares[comb[0]]][t], data[all_softwares[comb[1]]][t]
-    #         if g1 is None or g2 is None:
-    #             continue
+    all_softwares = ["spm", "flirt", "ants"]
+    combos = list(combinations(range(len(all_softwares)), 2))
+    data = read_all_versions(
+        parent_path, ["spm", "flirt", "ants"], ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"], [func_fd_passed], dtype=float
+    )
+    IDs_to_remove = {}
+    for t in all_templates:
+        failed_ids_set = set()
+        for s in all_softwares:
+            path = parent_path / s / t / "IDs_failed_all.txt"
+            if path.exists():
+                failed_ids_set.update(np.loadtxt(path, dtype=str))
+        IDs_to_remove[t] = failed_ids_set
 
-    #         t, p = stats.ttest_rel(g1, g2)
-    #         print(f"templates:{t} between softwares: {all_softwares[comb[0]]} - {all_softwares[comb[1]]}")
+    for t in all_templates:
+        for s in all_softwares:
+            if IDs_to_remove is None or data[s][t] is None:
+                continue
+            mask = np.isin(fine_IDs[s][t], list(IDs_to_remove[t]))
+            indices = np.where(mask)[0]
+            data[s][t] = np.delete(data[s][t], indices, axis=0)
+
+    all_softwares = ["spm", "flirt", "ants"]
+    combos = list(combinations(range(len(all_softwares)), 2))
+
+    for comb in combos:
+        for t in templates:
+            g1, g2 = data[all_softwares[comb[0]]][t], data[all_softwares[comb[1]]][t]
+            if g1 is None or g2 is None:
+                continue
+
+            t_, p = stats.ttest_rel(np.log(np.std(g1, axis=1)), np.log(np.std(g2, axis=1)))
+            print(f"templates:{t} between softwares: {all_softwares[comb[0]]} - {all_softwares[comb[1]]}")
+            print(f"t:{t_} p:{p}")

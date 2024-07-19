@@ -37,9 +37,7 @@ configurations = {
         MNI2009cAsym: {
             "failed_subjects_HC": [
                 "sub-116230",
-                "sub-4079",
                 "sub-3620",
-                "sub-3414",
             ],
             "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
             "PD_list": PD_list_path,
@@ -50,7 +48,7 @@ configurations = {
             "pattern_HC": "_ses-BL",
         },
         MNI2009cSym: {
-            "failed_subjects_HC": ["sub-3414", "sub-3620", "sub-116230", "sub-4079"],
+            "failed_subjects_HC": ["sub-3620", "sub-116230"],
             "failed_subjects_PD": [
                 "sub-3403",
                 "sub-3700",
@@ -99,7 +97,7 @@ configurations = {
                 "sub-3615",
                 "sub-3811",
                 "sub-3853",
-                "sub-3970" "sub-3969",
+                "sub-3969",
                 "sub-4079",
             ],
             "failed_subjects_PD": [

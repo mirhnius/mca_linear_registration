@@ -13,3 +13,4 @@ extend-ignore =
     E741
     F405
     F403
+    C901
