@@ -3,6 +3,7 @@ from lnrgst_mca import metrics_utils
 from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes
 from copy import deepcopy
 from scipy import stats
+import pandas as pd
 import numpy as np
 import argparse
 
@@ -86,6 +87,10 @@ def concatenate_cohorts(g1, g2):
 
 if __name__ == "__main__":
 
+    # template  = "MNI152NLin2009cSym_res-1"
+    # software = "flirt"
+    # diagram_path = Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/outputs_plots/diagrams") / software / template
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-t", "--template", type=str, help="template name")
@@ -102,7 +107,6 @@ if __name__ == "__main__":
         raise ValueError(f"unknown software {software}")
 
     if template not in FD_mean_bin_sizes[software].keys() or template not in FD_sd_bin_sizes[software].keys():
-        print(FD_mean_bin_sizes[software].keys())
         raise ValueError(f"unknown template {template}")
 
     # add something to check validity of s and t
@@ -343,7 +347,7 @@ if __name__ == "__main__":
         datasets=[all_mad_fine, all_mad_failed],
         title=f"Mean Absolute Difference of FD: {software} - {template}",
         path=diagram_path,
-        labels=["Fine", "Failed"],
+        labels=["Passed", "Failed"],
     )
 
     # saving MAD
@@ -356,14 +360,79 @@ if __name__ == "__main__":
     np.savetxt(path / f"{software}_mad_all_PD.txt", mad_all_PD)
     np.savetxt(path / f"{software}_mad_all_HC.txt", mad_all_HC)
 
-    # Printing information
+    #
+    result_fine = concatenate_cohorts(result_fine_PD, result_fine_HC)
+    result_failed = concatenate_cohorts(result_failed_PD, result_failed_HC)
+    all_results = concatenate_cohorts(result_fine, result_failed)
+
+    IDs_fine = concatenate_cohorts(np.array(list(mat_dic_fine_PD.keys())), np.array(list(mat_dic_fine_HC.keys())))
+    IDs_failed = concatenate_cohorts(np.array(list(mat_dic_failed_PD.keys())), np.array(list(mat_dic_failed_HC.keys())))
+    IDs_all = concatenate_cohorts(IDs_fine, IDs_failed)
+
+    np.savetxt(path / "FD_fine_all.txt", result_fine)
+    np.savetxt(path / "FD_failed_all.txt", result_failed)
+    np.savetxt(path / "IDs_fine_all.txt", IDs_fine, fmt="%s")
+    np.savetxt(path / "IDs_failed_all.txt", IDs_failed, fmt="%s")
+    np.savetxt(path / "FD_all.txt", all_results)
+    np.savetxt(path / "IDs_all.txt", IDs_all, fmt="%s")
 
     t, p = stats.ttest_ind(np.log(np.std(result_all_PD, axis=1)), np.log(np.std(result_all_HC, axis=1)))
     t_fine, p_fine = stats.ttest_ind(np.log(np.std(result_fine_PD, axis=1)), np.log(np.std(result_fine_HC, axis=1)))
 
-    print(f"t:{t:.3f} p:{p:.3f}")
-    print(f"t_fine:{t_fine:.3f} p_fine:{p_fine:.3f}")
-    print(f"Mean of Mean Absolute error in fine registrations across subjects: {np.mean(all_mad_fine)}")
-    print(f"Mean of  Mean Absolute error in failed registrations across subjects: {np.mean(all_mad_failed)}")
-    print(f"Max Mean Absolute error in fine registrations across subjects: {np.max(all_mad_fine)}")
-    print(f"Max Mean Absolute error in failed registrations across subjects: {np.max(all_mad_failed)}")
+    fine_mean_of_std = np.mean(np.log(np.std(result_fine, axis=1)))
+    fine_std_of_std = np.std(np.log(np.std(result_fine, axis=1)))
+    probabilities = stats.norm.pdf(np.log(np.std(result_failed, axis=1)), fine_mean_of_std, fine_std_of_std)
+    np.savetxt(path / "probabilities_failed.txt", probabilities)
+
+    #  Printing information
+    # print("--------------", f"{software} - {template}", "--------------")
+    # print(f"HC vs PD t-test on standard deviation of framewise displacement for all subjects  t:{t:.3f} p:{p:.3f}")
+    # print(f"HC vs PD t-test on standard deviation of framewise displacement for passes QC subjects  t:{t_fine:.3f} p:{p_fine:.3f}")
+    # print(f"Mean of Mean Absolute Difference of passed QC subjects: {np.mean(all_mad_fine):.3e} mm")
+    # print(f"Mean of  Mean Absolute Difference of failed QC subjects: {np.mean(all_mad_failed):.3e} mm")
+    # print(f"Max of Mean Absolute Difference of passed QC subjects: {np.max(all_mad_fine):.3e} mm")
+    # print(f"Max of Mean Absolute Difference of failed QC subjects: {np.max(all_mad_failed):.3e} mm")
+    # print(f"Number of passed QC subjects with higher than 1 mm Mean Absolute Difference: {np.sum(all_mad_fine >= 1.0)}")
+    # print(f"Number of passed QC subjects with higher than 0.2 mm Mean Absolute Difference: {np.sum(all_mad_fine >= 0.2)}")
+    # print("------------------------------------------------------------")
+    # print("\n")
+    # for i, id in enumerate(IDs_failed):
+    #     print(f"{id}: {probabilities[i]:.3e}")
+
+    with open(path / "report.txt", "w") as f:
+        f.write("-------------- {} - {} --------------\n".format(software, template))
+        f.write("HC vs PD t-test on standard deviation of framewise displacement for all subjects  t:{:.3f} p:{:.3f}\n".format(t, p))
+        f.write("HC vs PD t-test on standard deviation of framewise displacement for passes QC subjects  t:{:.3f} p:{:.3f}\n".format(t_fine, p_fine))
+        f.write("Mean of Mean Absolute Difference of passed QC subjects: {:.3e} mm\n".format(np.mean(all_mad_fine)))
+        f.write("Mean of Mean Absolute Difference of failed QC subjects: {:.3e} mm\n".format(np.mean(all_mad_failed)))
+        f.write("Max of Mean Absolute Difference of passed QC subjects: {:.3e} mm\n".format(np.max(all_mad_fine)))
+        f.write("Max of Mean Absolute Difference of failed QC subjects: {:.3e} mm\n".format(np.max(all_mad_failed)))
+        f.write("Number of passed QC subjects with higher than 1 mm Mean Absolute Difference: {}\n".format(np.sum(all_mad_fine >= 1.0)))
+        f.write("Number of passed QC subjects with higher than 0.2 mm Mean Absolute Difference: {}\n".format(np.sum(all_mad_fine >= 0.2)))
+        f.write("------------------------------------------------------------\n")
+        f.write("\n")
+        f.write("The probabilities of failed subject belonging to the fine distribution \n")
+        for i, id in enumerate(IDs_failed):
+            f.write("{}: {:.3e}\n".format(id, probabilities[i]))
+
+    record = {
+        "index": f"{software} - {template}",
+        "t": t,
+        "p": p,
+        "t_fine": t_fine,
+        "p_fine": p_fine,
+        "mean MAD passed": np.mean(all_mad_fine),
+        "max MAD passed": np.max(all_mad_fine),
+        "mean MAD failed": np.mean(all_mad_failed),
+        "max MAD failed": np.max(all_mad_failed),
+        "> 1 mm passed MAD": np.sum(all_mad_fine >= 1.0),
+        "> 0.2 mm passed MAD": np.sum(all_mad_fine >= 0.2),
+    }
+    # output_csv = Path(args.diagram_path) / "output.csv"
+    output_csv = Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/outputs_plots/diagrams") / "output.csv"
+    df = pd.DataFrame([record])
+    df.set_index("index", inplace=True)
+    if output_csv.exists():
+        df.to_csv(output_csv, mode="a", header=False)
+    else:
+        df.to_csv(output_csv)
