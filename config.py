@@ -5,6 +5,12 @@ from lnrgst_mca.constants import ANTS, FLIRT, SPM
 MNI2009cAsym = "MNI152NLin2009cAsym_res-01"
 MNI2009cSym = "MNI152NLin2009cSym_res-1"
 
+FD_SD_x_lim = {
+    FLIRT: {MNI2009cAsym: None, MNI2009cSym: None},
+    ANTS: {MNI2009cAsym: None, MNI2009cSym: None},
+    SPM: {MNI2009cAsym: (0, 1e-6), MNI2009cSym: None},
+}
+
 MAD_bin_sizes = {
     FLIRT: {MNI2009cAsym: [5, 5], MNI2009cSym: [5, 5]},
     ANTS: {MNI2009cAsym: [15, 10], MNI2009cSym: [15, 10]},
@@ -14,12 +20,12 @@ MAD_bin_sizes = {
 FD_sd_bin_sizes = {
     FLIRT: {MNI2009cAsym: [10, 10], MNI2009cSym: [10, 10]},
     ANTS: {MNI2009cAsym: [10, 1], MNI2009cSym: [10, 1]},
-    SPM: {MNI2009cAsym: [50, 5], MNI2009cSym: [50, 5]},
+    SPM: {MNI2009cAsym: [100, 10], MNI2009cSym: [50, 5]},
 }
 
 FD_mean_bin_sizes = {
-    FLIRT: {MNI2009cAsym: [10, 10], MNI2009cSym: [10, 10]},
-    ANTS: {MNI2009cAsym: [10, 1], MNI2009cSym: [10, 1]},
+    FLIRT: {MNI2009cAsym: [15, 10], MNI2009cSym: [10, 10]},
+    ANTS: {MNI2009cAsym: [15, 1], MNI2009cSym: [10, 1]},
     SPM: {MNI2009cAsym: [15, 10], MNI2009cSym: [15, 10]},
 }
 
@@ -88,19 +94,22 @@ configurations = {
     SPM: {
         MNI2009cAsym: {
             "failed_subjects_HC": [
+                "sub-3104",
                 "sub-116230",
                 "sub-3620",
                 "sub-3316",
                 "sub-3361",
-                "sub-3414",
                 "sub-3570",
                 "sub-3615",
+                "sub-3767",
                 "sub-3811",
                 "sub-3853",
                 "sub-3969",
+                "sub-4067",
                 "sub-4079",
             ],
             "failed_subjects_PD": [
+                "sub-3365",
                 "sub-3403",
                 "sub-3586",
                 "sub-3700",
@@ -108,10 +117,11 @@ configurations = {
                 "sub-3823",
                 "sub-3960",
                 "sub-3970",
-                "sub-4121",
                 "sub-40733",
                 "sub-42264",
                 "sub-75562",
+                "sub-106703",
+                "sub-139982",
             ],
             "PD_list": PD_list_path,
             "HC_list": HC_list_path,
@@ -121,7 +131,7 @@ configurations = {
             "pattern_HC": "_ses-BL",
         },
         MNI2009cSym: {
-            "failed_subjects_HC": ["sub-3057", "sub-3104", "sub-3414", "sub-3615", "sub-3620", "sub-3853", "sub-4079", "sub-116230"],
+            "failed_subjects_HC": ["sub-3057", "sub-3615", "sub-3620", "sub-3853", "sub-4079", "sub-116230", "sub-4067"],
             "failed_subjects_PD": [
                 "sub-3365",
                 "sub-3403",
