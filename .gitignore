@@ -10,7 +10,7 @@
 *.json
 
 QC
-test
+test*
 test_ppmi_hc
 testing_incovation_creator
 invocations*
