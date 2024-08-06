@@ -66,7 +66,7 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
     plt.show()
 
 
-def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None, coordinates=None):
+def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None, coordinates=None, xlim=None):
     n = len(datasets)
     if labels is None:
         labels = [f"Software {str(i+1)}" for i in range(len(datasets))]
@@ -90,8 +90,13 @@ def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None
         if coordinates:
             plt.text(coordinates[0], dists[i] + coordinates[1], f"{labels[i]}'s median: {median:.2e}", fontsize=10)
         else:
-            plt.text(median, (dists[i] + (plt.ylim()[1] / 2)), f"{labels[i]}'s median: {median:.2e}", fontsize=10, ha=direction[i % 2], rotation=90)
+            plt.text(
+                median, (dists[i] + (plt.ylim()[1] / 2)), f"{labels[i]}'s median: {median:.2e}", fontsize=10, ha=direction[(i + 1) % 2], rotation=90
+            )
         # {median:.2f}
+
+    if xlim:
+        plt.xlim(xlim)
 
     plt.title(title)
     plt.legend()
