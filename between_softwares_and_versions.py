@@ -6,6 +6,21 @@ from pathlib import Path
 from itertools import combinations
 from scipy import stats
 
+from lnrgst_mca.constants import ANTS, FLIRT, SPM
+
+MNI2009cAsym = "MNI152NLin2009cAsym_res-01"
+MNI2009cSym = "MNI152NLin2009cSym_res-1"
+sd_same_software_bin_sizes = {
+    FLIRT: [10, 10],
+    ANTS: [25, 25],
+    SPM: [50, 3],
+}
+mean_same_software_bin_sizes = {
+    FLIRT: [50, 10],
+    ANTS: [10, 10],
+    SPM: [10, 10],
+}
+
 
 def read_all_versions(parent_path, softwares, templates, name_patterns, dtype=float):
     parent_path = Path(parent_path)
@@ -30,15 +45,20 @@ def read_all_versions(parent_path, softwares, templates, name_patterns, dtype=fl
 
 
 # support data[][] == None
-def same_template_plots(templates, data, path, coordinates=None, std_bins=None, mean_bins=None, **kawrgs):
+def same_template_plots(templates, data, path, coordinates=None, std_bins=None, mean_bins=None, log=False, **kawrgs):
 
     if coordinates is None:
         coordinates_mean, coordinates_std = None, None
     else:
         coordinates_mean, coordinates_std = coordinates[0], coordinates[1]
     for template in templates:
-        same_template_data_mean = [np.mean(data[software][template], axis=1) for software in data.keys()]
-        same_template_data_std = [np.std(data[software][template], axis=1) for software in data.keys()]
+
+        if log:
+            same_template_data_mean = [np.log10(np.mean(data[software][template], axis=1)) for software in data.keys()]
+            same_template_data_std = [np.log10(np.std(data[software][template], axis=1)) for software in data.keys()]
+        else:
+            same_template_data_mean = [np.mean(data[software][template], axis=1) for software in data.keys()]
+            same_template_data_std = [np.std(data[software][template], axis=1) for software in data.keys()]
 
         hist_plotter(
             datasets=same_template_data_mean,
@@ -61,19 +81,26 @@ def same_template_plots(templates, data, path, coordinates=None, std_bins=None, 
         )
 
 
-def same_software_plots(templates, data, path, labels=None, std_bins=None, mean_bins=None, **kawrgs):
+def same_software_plots(templates, data, path, labels=None, std_bins=None, mean_bins=None, log=False, **kawrgs):
     if labels is None:
         labels = templates
 
     for software in data.keys():
-        same_software_data_mean = [np.mean(data[software][template], axis=1) for template in templates]
-        same_software_data_std = [np.std(data[software][template], axis=1) for template in templates]
+        if log:
+            same_software_data_mean = [np.log10(np.mean(data[software][template], axis=1)) for template in templates]
+            same_software_data_std = [np.log10(np.std(data[software][template], axis=1)) for template in templates]
+        else:
+            same_software_data_mean = [np.mean(data[software][template], axis=1) for template in templates]
+            same_software_data_std = [np.std(data[software][template], axis=1) for template in templates]
+
+        m_b = mean_bins[software] if mean_bins else None
+        s_b = std_bins[software] if std_bins else None
         hist_plotter(
-            datasets=same_software_data_mean, title=f"Mean FD: different templates - {software}", path=path, labels=labels, bins=mean_bins, **kawrgs
+            datasets=same_software_data_mean, title=f"Mean FD: different templates - {software}", path=path, labels=labels, bins=m_b, **kawrgs
         )
 
         hist_plotter(
-            datasets=same_software_data_std, title=f"SD of FD: different templates - {software}", path=path, labels=labels, bins=std_bins, **kawrgs
+            datasets=same_software_data_std, title=f"SD of FD: different templates - {software}", path=path, labels=labels, bins=s_b, **kawrgs
         )
 
 
@@ -200,22 +227,45 @@ if __name__ == "__main__":
         dists=[5, 10, 15],
     )
 
-    same_template_plots(
-        ["MNI152NLin2009cSym_res-1"],
-        data,
-        Path("./outputs_plots/between_plots"),
-        coordinates=[[80, 10], [7, 40]],
-        std_bins=[1, 1, 25],
-        mean_bins=[5, 5, 5],
-        dists=[5, 10, 15],
-    )
+    # same_template_plots(
+    #     ["MNI152NLin2009cSym_res-1"],
+    #     data,
+    #     Path("./outputs_plots/between_plots"),
+    #     coordinates=[[80, 10], [7, 40]],
+    #     std_bins=[1, 1, 25],
+    #     mean_bins=[5, 5, 5],
+    #     dists=[5, 10, 15],
+    # )
+
+    # same_software_plots(
+    #     ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
+    #     data,
+    #     Path("./outputs_plots/between_templates"),
+    #     labels=["Asym", "Sym"],
+    #     dists=[-10, -10],
+    #     mean_bins=mean_same_software_bin_sizes,
+    #     std_bins=sd_same_software_bin_sizes,
+    # )
+
+    # same_template_plots(
+    #     ["MNI152NLin2009cSym_res-1"],
+    #     data,
+    #     Path("./outputs_plots/between_plots"),
+    #     coordinates=[[80, 10], [7, 40]],
+    #     std_bins=[1, 1, 25],
+    #     mean_bins=[5, 5, 5],
+    #     dists=[5, 10, 15],
+    #     log=True,
+    # )
 
     same_software_plots(
         ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
         data,
         Path("./outputs_plots/between_templates"),
-        labels=["2009cAsym", "2009cSym"],
-        dists=[-10, -10],
+        labels=["Asym", "Sym"],
+        coordinates=[80, 10],
+        log=True,
+        xlabel="log10(Value) (mm)",
     )
 
     def func_fd_passed(s, t):

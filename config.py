@@ -8,7 +8,7 @@ MNI2009cSym = "MNI152NLin2009cSym_res-1"
 FD_SD_x_lim = {
     FLIRT: {MNI2009cAsym: None, MNI2009cSym: None},
     ANTS: {MNI2009cAsym: None, MNI2009cSym: None},
-    SPM: {MNI2009cAsym: (0, 1e-6), MNI2009cSym: None},
+    SPM: {MNI2009cAsym: (0, 8e-7), MNI2009cSym: None},
 }
 
 MAD_bin_sizes = {
@@ -18,15 +18,15 @@ MAD_bin_sizes = {
 }
 
 FD_sd_bin_sizes = {
-    FLIRT: {MNI2009cAsym: [10, 10], MNI2009cSym: [10, 10]},
-    ANTS: {MNI2009cAsym: [10, 1], MNI2009cSym: [10, 1]},
-    SPM: {MNI2009cAsym: [100, 10], MNI2009cSym: [50, 5]},
+    FLIRT: {MNI2009cAsym: [10, 15], MNI2009cSym: [10, 15]},
+    ANTS: {MNI2009cAsym: [10, 1], MNI2009cSym: [10, 10]},
+    SPM: {MNI2009cAsym: [200, 10], MNI2009cSym: [15, 10]},
 }
 
 FD_mean_bin_sizes = {
     FLIRT: {MNI2009cAsym: [15, 10], MNI2009cSym: [10, 10]},
     ANTS: {MNI2009cAsym: [15, 1], MNI2009cSym: [10, 1]},
-    SPM: {MNI2009cAsym: [15, 10], MNI2009cSym: [15, 10]},
+    SPM: {MNI2009cAsym: [15, 15], MNI2009cSym: [15, 15]},
 }
 
 PD_list_path = Path("./PD_selected_subjects.txt")

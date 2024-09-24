@@ -1,6 +1,6 @@
 from lnrgst_mca.plot_utils import plotter, hist_plotter
 from lnrgst_mca import metrics_utils
-from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes
+from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes, FD_SD_x_lim
 from copy import deepcopy
 from scipy import stats
 import pandas as pd
@@ -301,6 +301,7 @@ if __name__ == "__main__":
         path=diagram_path,
         bins=FD_mean_bin_sizes[software][template],
         labels=["Passed", "failed"],
+        xlabel="(mm)",
     )
     hist_plotter(
         datasets=[np.std(all_fd_mca_fine, axis=1), np.std(all_fd_mca_failed, axis=1)],
@@ -308,6 +309,8 @@ if __name__ == "__main__":
         path=diagram_path,
         bins=FD_sd_bin_sizes[software][template],
         labels=["Passed", "failed"],
+        xlim=FD_SD_x_lim[software][template],
+        xlabel="(mm)",
     )
 
     # saving FD
@@ -348,6 +351,7 @@ if __name__ == "__main__":
         title=f"Mean Absolute Difference of FD: {software} - {template}",
         path=diagram_path,
         labels=["Passed", "Failed"],
+        xlabel="(mm)",
     )
 
     # saving MAD
@@ -383,6 +387,14 @@ if __name__ == "__main__":
     fine_std_of_std = np.std(np.log(np.std(result_fine, axis=1)))
     probabilities = stats.norm.pdf(np.log(np.std(result_failed, axis=1)), fine_mean_of_std, fine_std_of_std)
     np.savetxt(path / "probabilities_failed.txt", probabilities)
+
+    hist_plotter(
+        datasets=[np.log(np.std(result_fine, axis=1)), np.log(np.std(result_failed, axis=1))],
+        title=f"log SD of FD: {software} - {template}",
+        path=diagram_path,
+        labels=["Passed", "Failed"],
+        xlabel="log(value) (mm)",
+    )
 
     #  Printing information
     # print("--------------", f"{software} - {template}", "--------------")
