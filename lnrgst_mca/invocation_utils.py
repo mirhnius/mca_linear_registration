@@ -311,7 +311,14 @@ class Registration(Preprocessing):
 
 class FLIRT_IEEE_registration(Registration):
     def __init__(
-        self, subjects_maps: Dict, output_dir: pathlib.Path, invocation_dir: pathlib.Path, ref: str = REF, dof: int = 12, template_name=None
+        self,
+        subjects_maps: Dict,
+        output_dir: pathlib.Path,
+        invocation_dir: pathlib.Path,
+        ref: str = REF,
+        dof: int = 12,
+        template_name=None,
+        cost_function="corratio",
     ):
         """
         Initializes the FLIRT preprocessing class for IEEE standard with subject maps, output directory,
@@ -326,6 +333,7 @@ class FLIRT_IEEE_registration(Registration):
         """
         super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
 
+        self.cost_function = cost_function
         self.output_dir = self.output_dir / FLIRT / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
         self.invocation_dir = self.invocation_dir / FLIRT / self.template_name / f"anat-{str(self.dofs)}dofs" / ORIGINAL
 
@@ -350,6 +358,7 @@ class FLIRT_IEEE_registration(Registration):
             "reference": str(self.ref),
             "out_mat_filename": str(out_matrix_file),
             "dof": self.dofs,
+            "cost": self.cost_function,
         }
 
     def create_invocations(self, dry_run: bool = False):
@@ -366,7 +375,10 @@ class FLIRT_MCA_registration(FLIRT_IEEE_registration):
         n_mca: int = 10,
         dof: int = 12,
         template_name=None,
+        cost_function="corratio",
     ):
+        # similarity_metric = ""
+        # cost {mutualinfo,corratio,normcorr,normmi,leastsq}
         """
         Initializes the FLIRT registration class for MCA (Monte Carlo Arithmetic) with subject maps, output directory,
         invocation directory, reference image, degrees of freedom, and the number of MCA iterations.
@@ -379,7 +391,7 @@ class FLIRT_MCA_registration(FLIRT_IEEE_registration):
             n_mca (int): Number of MCA iterations to be performed for the preprocessing step.
             dof (int): Degrees of freedom to be used by FLIRT for image registration. Default is 12.
         """
-        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name)
+        super().__init__(subjects_maps, output_dir, invocation_dir, ref, dof, template_name, cost_function)
         self.n_mca = n_mca
         self.output_dir = self.output_dir.parent / MCA
         self.invocation_dir = self.invocation_dir.parent / MCA
