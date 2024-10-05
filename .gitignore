@@ -10,6 +10,7 @@
 *.json
 
 QC
+metrics_exp
 test*
 test_ppmi_hc
 testing_incovation_creator
