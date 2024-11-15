@@ -2,7 +2,7 @@
 #SBATCH --job-name=different_metrics
 #SBATCH --output=different_metrics_{%j}.out 
 #SBATCH --error=different_metrics_{%j}.err 
-#SBATCH --time=0:30:0 
+#SBATCH --time=1:30:0 
 #SBATCH --ntasks=50 
 #SBATCH --mem-per-cpu=2G 
 #SBATCH --account=rrg-jbpoline 
