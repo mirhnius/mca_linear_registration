@@ -188,7 +188,7 @@ def make_gif(image_paths, subject_name, output_dir, duration=200, **kwargs):
 
 
 # add docstring for all of them and handel kwargs here
-def QC_plotter(paths_map, output_dir, plotter=slice_plotter, template=None, **kwargs):
+def QC_plotter(paths_map, output_dir, plotter=slice_plotter, template=None, mca_flag=True, **kwargs):
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -204,7 +204,8 @@ def QC_plotter(paths_map, output_dir, plotter=slice_plotter, template=None, **kw
         subject_dir = mca_dir / subject
         subject_dir.mkdir(parents=True, exist_ok=True)
 
-        plotter(paths_map[subject][MCA], template=template, title_prefix="", output_dir=subject_dir, levels=[0.4], **kwargs)
+        if mca_flag:
+            plotter(paths_map[subject][MCA], template=template, title_prefix="", output_dir=subject_dir, levels=[0.4], **kwargs)
 
         plotter([paths_map[subject][ORIGINAL]], template=template, title_prefix="", output_dir=ieee_dir, levels=[0.4], **kwargs)
 
