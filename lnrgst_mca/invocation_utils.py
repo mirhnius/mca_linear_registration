@@ -6,7 +6,7 @@ import pathlib
 from copy import deepcopy
 from typing import Dict, List
 from abc import ABC, abstractmethod
-from constants import *
+from .constants import *
 
 
 def read_subjects_paths(file_path: str) -> List[str]:
@@ -77,7 +77,7 @@ def scan_filed_dict(scan_path: pathlib.Path) -> Dict:
     }
 
 
-def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[str] = None) -> Dict:
+def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, scanner=scan_filed_dict, sub_dirs: List[str] = None) -> Dict:
     """
     Creates and returns a map of subjects and their scans based on the specified pattern.
 
@@ -94,7 +94,7 @@ def create_subject_map(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[
     subjects_map = {}
     for scan_path in scans_paths:
 
-        scan_fields = scan_filed_dict(scan_path)
+        scan_fields = scanner(scan_path)
         subject = scan_fields["subject"]
         session = scan_fields["session"]
 
