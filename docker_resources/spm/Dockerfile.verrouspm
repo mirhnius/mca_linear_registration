@@ -1,0 +1,78 @@
+# Build Stage for Valgrind and Verrou
+ARG IMAGE_BASE=ubuntu:20.04
+ARG VALGRIND_VERSION=3.23.0
+ARG VALGRIND_BRANCH=VALGRIND_3_23_0
+ARG VERROU_BRANCH=master
+ARG NUM_THREADS=6
+
+FROM ${IMAGE_BASE} AS build
+
+ARG VALGRIND_VERSION
+ARG VALGRIND_BRANCH
+ARG VERROU_BRANCH
+ARG NUM_THREADS
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall ca-certificates \
+    && update-ca-certificates \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git build-essential automake python3 libc6-dbg \
+    && rm -fr /var/lib/apt/lists/*
+
+RUN mkdir -p /build
+WORKDIR /build
+
+RUN git clone --branch=${VALGRIND_BRANCH} --single-branch --depth=1 git://sourceware.org/git/valgrind.git valgrind-${VALGRIND_VERSION}+verrou-dev
+
+WORKDIR /build/valgrind-${VALGRIND_VERSION}+verrou-dev
+
+RUN git clone --branch=${VERROU_BRANCH} --single-branch --depth=1 https://github.com/edf-hpc/verrou.git verrou \
+    && cat verrou/valgrind.*diff | patch -p1
+
+RUN ./autogen.sh \
+    && ./configure --enable-only64bit --enable-verrou-fma --prefix=/opt/valgrind-${VALGRIND_VERSION}+verrou-dev \
+    && make -j ${NUM_THREADS} \
+    && make install
+
+# Build Stage for SPM12
+FROM ${IMAGE_BASE} AS spm_build
+
+RUN apt update -y \
+    && DEBIAN_FRONTEND=noninteractive apt install -y octave curl make liboctave-dev
+
+RUN mkdir /opt/spm12 \
+    && curl -SL https://github.com/spm/spm12/archive/r7771.tar.gz | tar -xzC /opt/spm12 --strip-components 1
+
+RUN make -C /opt/spm12/src PLATFORM=octave distclean \
+    && make -C /opt/spm12/src PLATFORM=octave \
+    && make -C /opt/spm12/src PLATFORM=octave install \
+    && ln -s /opt/spm12/bin/spm12-octave /usr/local/bin/spm12
+
+# Final Stage: Combine Valgrind+Verrou and SPM12
+FROM ${IMAGE_BASE} AS final
+ARG VALGRIND_VERSION
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3 libc6-dbg python3-numpy python3-matplotlib texlive-latex-extra texlive-fonts-recommended dvipng cm-super octave make liboctave-dev \
+    && rm -fr /var/lib/apt/lists/*
+
+# Copy Valgrind+Verrou from build stage
+COPY --from=build /opt/valgrind-${VALGRIND_VERSION}+verrou-dev /opt/valgrind-${VALGRIND_VERSION}+verrou-dev
+
+# Set PATH permanently
+ENV PATH="/opt/valgrind-${VALGRIND_VERSION}+verrou-dev/bin:${PATH}"
+
+# Copy SPM12 from build stage
+COPY --from=spm_build /opt/spm12 /opt/spm12
+RUN ln -s /opt/spm12/bin/spm12-octave /usr/local/bin/spm12
+
+# Set up user environment
+RUN useradd user -d /home/user -s /bin/bash \
+    && mkdir /home/user && chown -R user:user /home/user
+
+WORKDIR /home/user
+USER user
+
+# Confirm build success
+RUN echo "Image with Valgrind+Verrou and SPM12 successfully built"
+
+CMD ["/bin/bash"]
