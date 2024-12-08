@@ -152,10 +152,84 @@ configurations = {
     },
 }
 
+configurations = {
+    # "leastsq": {
+    #     FLIRT: {
+    #         "2009Asym": {
+    #             "failed_subjects_HC": [
+    #                 "sub-116230",
+    #                 "sub-3620",
+    #             ],
+    #             "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
+    #             "PD_list": PD_list_path,
+    #             "HC_list": HC_list_path,
+    #             "path_PD": PD_path / "leastsq" / FLIRT / "2009Asym" / ddof,
+    #             "path_HC": HC_path / "leastsq" / FLIRT / "2009Asym" / ddof,
+    #             "pattern_PD": "_ses-BL",
+    #             "pattern_HC": "_ses-BL",
+    #         }
+    #     }
+    # },
+    "mutualinfo": {
+        FLIRT: {
+            "2009Asym": {
+                "failed_subjects_HC": [
+                    "sub-116230",
+                    "sub-3620",
+                ],
+                "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
+                "PD_list": PD_list_path,
+                "HC_list": HC_list_path,
+                "path_PD": PD_path / "mutualinfo" / FLIRT / "2009Asym" / ddof,
+                "path_HC": HC_path / "mutualinfo" / FLIRT / "2009Asym" / ddof,
+                "pattern_PD": "_ses-BL",
+                "pattern_HC": "_ses-BL",
+            }
+        }
+    },
+    "normcorr": {
+        FLIRT: {
+            "2009Asym": {
+                "failed_subjects_HC": [
+                    "sub-116230",
+                    "sub-3620",
+                ],
+                "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403", "sub-40733"],
+                "PD_list": PD_list_path,
+                "HC_list": HC_list_path,
+                "path_PD": PD_path / "normcorr" / FLIRT / "2009Asym" / ddof,
+                "path_HC": HC_path / "normcorr" / FLIRT / "2009Asym" / ddof,
+                "pattern_PD": "_ses-BL",
+                "pattern_HC": "_ses-BL",
+            }
+        }
+    },
+    "normmi": {
+        FLIRT: {
+            "2009Asym": {
+                "failed_subjects_HC": [
+                    "sub-116230",
+                    "sub-3620",
+                ],
+                "failed_subjects_PD": ["sub-3709", "sub-3700"],
+                "PD_list": PD_list_path,
+                "HC_list": HC_list_path,
+                "path_PD": PD_path / "normmi" / FLIRT / "2009Asym" / ddof,
+                "path_HC": HC_path / "normmi" / FLIRT / "2009Asym" / ddof,
+                "pattern_PD": "_ses-BL",
+                "pattern_HC": "_ses-BL",
+            }
+        }
+    },
+}
 
-def get_configurations(software, template):
 
-    config = configurations[software][template]
+def get_configurations(software, template, cost_function=False):
+
+    if cost_function:
+        config = configurations[cost_function][software][template]
+    else:
+        config = configurations[software][template]
 
     paths_PD = get_paths(config["path_PD"], config["PD_list"], pattern=config["pattern_PD"])
     paths_HC = get_paths(config["path_HC"], config["HC_list"], pattern=config["pattern_HC"])
