@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import matplotlib.pyplot as plt
 from scipy import stats
 import pandas as pd
 import numpy as np
@@ -8,12 +9,77 @@ import argparse
 from lnrgst_mca import metrics_utils
 from lnrgst_mca.plot_utils import hist_plotter
 from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes, FD_SD_x_lim
-from within_software_analysis import (
-    transformation_dictionary_to_arrays,
-    basic_info_plotter,
-    copy_and_remove_keys,
-    concatenate_cohorts,
-)
+
+def largest_indces(array, dict_, n=4):
+    largest_idx = np.argsort(array, axis=0)[-n:]
+    return np.array(list(dict_.keys()))[largest_idx], largest_idx
+
+
+# changning it later in a way to be abe to use it for ieee
+def transformation_dictionary_to_arrays(mat_dic, mode="mca", n_mca=10):
+
+    # Initialize numpy arrays to store transformation parameters for all subjects
+    num_subjects = len(mat_dic)
+    scales_mca = np.zeros((num_subjects, n_mca, 3))
+    translations_mca = np.zeros((num_subjects, n_mca, 3))
+    angles_mca = np.zeros((num_subjects, n_mca, 3))
+    shears_mca = np.zeros((num_subjects, n_mca, 3))
+
+    # Populate the numpy arrays
+    for sub_idx, (_, matrices) in enumerate(mat_dic.items()):
+
+        if n_mca == 1 and mode == "ieee":
+            scales, translations, angles, shears = affine.decompose(matrices[mode], shears=True, angles=True)
+            scales_mca[sub_idx, 0, :] = scales
+            translations_mca[sub_idx, 0, :] = translations
+            angles_mca[sub_idx, 0, :] = np.array(angles)
+            shears_mca[sub_idx, 0, :] = shears
+            continue
+
+        for i, matrix in enumerate(matrices[mode]):
+            scales, translations, angles, shears = affine.decompose(matrix, shears=True, angles=True)
+            scales_mca[sub_idx, i, :] = scales
+            translations_mca[sub_idx, i, :] = translations
+            angles_mca[sub_idx, i, :] = np.array(angles)
+            shears_mca[sub_idx, i, :] = shears
+
+    return scales_mca.squeeze(), translations_mca.squeeze(), angles_mca.squeeze(), shears_mca.squeeze()
+
+
+def basic_info_plotter(group1, group2, software, variable, figure_size=(9, 4), y_lim_mean=None, y_lim_sd=None, path=None, **kwargs):
+
+    plt.figure(figsize=figure_size)
+    plotter(np.mean(group1, axis=1), np.mean(group2, axis=1), title=f"{variable} Mean {software}", ylim=y_lim_mean, path=path, **kwargs)
+
+    plt.figure(figsize=figure_size)
+    plotter(np.std(group1, axis=1), np.std(group2, axis=1), title=f"{variable} SD {software}", ylim=y_lim_sd, path=path, **kwargs)
+
+
+def copy_and_remove_keys(original_dict, keys_to_copy):
+
+    dict_copy = deepcopy(original_dict)
+    new_dict = {}
+    for key in keys_to_copy:
+        new_dict[key] = dict_copy[key]
+        dict_copy.pop(key)
+
+    return dict_copy, new_dict
+
+
+def concatenate_mca_matrices(mat_dic):
+    # Get a list of the "mca" matrices in the dictionary
+    mca_matrices = [matrices["mca"] for matrices in mat_dic.values()]
+
+    # Stack the matrices along a new axis
+    return np.stack(mca_matrices)
+
+
+def concatenate_cohorts(g1, g2):
+    if len(g1) == 0:
+        return g2
+    if len(g2) == 0:
+        return g2
+    return np.concatenate([g1, g2])
 
 
 def setup_logging():
