@@ -35,10 +35,10 @@ def decompose_and_convert(mat_dict, n_mca=10, mode="mca"):
     return scales, translations, angles, shears
 
 
-def save_array(software, results, path):
+def save_array(software, results, path, fmt='%.18e'):
 
     for key, value in results.items():
-        np.savetxt(path / f"{software}_{key}.txt", value)
+        np.savetxt(path / f"{software}_{key}.txt", value, fmt=fmt)
 
 
 def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine, all_mad_failed, IDs_failed, probabilities):
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     template = args.template
     software = args.software
-    cost_function = args.cost_functiom
+    cost_function = args.cost_function
     diagram_path = Path(args.diagram_path) / software / template
     if args.cost_function:
         diagram_path = diagram_path / cost_function
@@ -140,10 +140,10 @@ if __name__ == "__main__":
 
     # calculating the mean absolute difference between MCA framewise displacements and the IEEE framewise displacement
     MAD_results = {
-        "mad_fine_PD": metrics_utils.mean_absolute_difference(FD_mca_results["FD_fine_mca_PD"], FD_mca_results["FD_fine_ieee_PD"]),
-        "mad_fine_HC": metrics_utils.mean_absolute_difference(FD_mca_results["FD_fine_mca_HC"], FD_mca_results["FD_fine_ieee_HC"]),
-        "mad_failed_PD": metrics_utils.mean_absolute_difference(FD_mca_results["FD_failed_mca_PD"], FD_mca_results["FD_fine_ieee_PD"]),
-        "mad_failed_HC": metrics_utils.mean_absolute_difference(FD_mca_results["FD_failed_mca_HC"], FD_mca_results["FD_fine_ieee_HC"]),
+        "mad_fine_PD": metrics_utils.mean_absolute_difference(FD_mca_results["FD_PD_fine"], FD_ieee_results["FD_ieee_PD_fine"]),
+        "mad_fine_HC": metrics_utils.mean_absolute_difference(FD_mca_results["FD_HC_fine"], FD_ieee_results["FD_ieee_HC_fine"]),
+        "mad_failed_PD": metrics_utils.mean_absolute_difference(FD_mca_results["FD_PD_failed"], FD_ieee_results["FD_ieee_PD_failed"]),
+        "mad_failed_HC": metrics_utils.mean_absolute_difference(FD_mca_results["FD_HC_failed"], FD_ieee_results["FD_ieee_HC_failed"]),
     }
 
     MAD_results["all_mad_failed"] = concatenate_cohorts(MAD_results["mad_failed_PD"], MAD_results["mad_failed_HC"])
@@ -239,8 +239,8 @@ if __name__ == "__main__":
     )
 
     basic_info_plotter(
-        FD_mca_results["FD_failed_mca_PD"],
-        FD_mca_results["FD_failed_mca_HC"],
+        FD_mca_results["FD_PD_failed"],
+        FD_mca_results["FD_HC_failed"],
         software=software,
         variable="Framewise Displacement failed",
         path=diagram_path,
@@ -293,17 +293,18 @@ if __name__ == "__main__":
 
     # saving
     path = diagram_path / "reports"
+    path.mkdir(parents=True, exist_ok=True)
     # Save IDs
     IDs = {
         "IDs_fine": concatenate_cohorts(np.array(list(mat_dic_fine_PD.keys())), np.array(list(mat_dic_fine_HC.keys()))),
         "IDs_failed": concatenate_cohorts(np.array(list(mat_dic_failed_PD.keys())), np.array(list(mat_dic_failed_HC.keys()))),
     }
     IDs["IDs_all"] = concatenate_cohorts(IDs["IDs_fine"], IDs["IDs_failed"])
-    save_array(software, IDs, path)
+    save_array(software, IDs, path, fmt="%s")
     # t test on standard deviation of cohorts
     t, p = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_all_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_all_HC"], axis=1)))
     t_fine, p_fine = stats.ttest_ind(
-        np.log(np.std(FD_mca_results["FD_fine_mca_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_fine_mca_HC"], axis=1))
+        np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1))
     )
 
     #
