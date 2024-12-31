@@ -5,9 +5,11 @@ from scipy import stats
 import pandas as pd
 import numpy as np
 import argparse
+from copy import deepcopy
+from fsl.transform import affine
 
 from lnrgst_mca import metrics_utils
-from lnrgst_mca.plot_utils import hist_plotter
+from lnrgst_mca.plot_utils import plotter, hist_plotter
 from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes, FD_SD_x_lim
 
 def largest_indces(array, dict_, n=4):
