@@ -167,7 +167,13 @@ def get_matrices(paths: dict):
                 errors.append(f"Error loading4 {mca_path}: {e}")
                 continue
         if mca_matrices:
-            matrices[sub][MCA] = np.array(mca_matrices)
+            try:
+                matrices[sub][MCA] = np.array(mca_matrices)
+            except ValueError as e:
+                print(sub) 
+                print([arr.shape for arr in mca_matrices])
+                errors.append(f"Error loading5 {mca_path}: {e}")
+
 
     return matrices, errors
 
