@@ -34,6 +34,9 @@ HC_list_path = Path("./HC_selected_subjects.txt")
 pipeline_path = Path("./pipline")
 PD_path = pipeline_path / "pd" / "outputs"
 HC_path = pipeline_path / "hc" / "outputs"
+cost_exp_path = Path("/home/niusham/projects/rrg-glatard/niusham/mca_linear_registration/metrics_exp")
+PD_path_cost = cost_exp_path / "pd" / "output"
+HC_path_cost = cost_exp_path / "hc" / "output"
 ddof = "anat-12dofs"
 
 # the pattern is for affine only change. add the image too
@@ -172,7 +175,7 @@ configurations = {
     # },
     "mutualinfo": {
         FLIRT: {
-            "2009Asym": {
+            "MNI152NLin2009cAsym_res-01": {
                 "failed_subjects_HC": [
                     "sub-116230",
                     "sub-3620",
@@ -180,8 +183,8 @@ configurations = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path / "mutualinfo" / FLIRT / "2009Asym" / ddof,
-                "path_HC": HC_path / "mutualinfo" / FLIRT / "2009Asym" / ddof,
+                "path_PD": PD_path_cost / "mutualinfo" / FLIRT / "2009Asym" / ddof,
+                "path_HC": HC_path_cost / "mutualinfo" / FLIRT / "2009Asym" / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }
@@ -189,7 +192,7 @@ configurations = {
     },
     "normcorr": {
         FLIRT: {
-            "2009Asym": {
+            "MNI152NLin2009cAsym_res-01": {
                 "failed_subjects_HC": [
                     "sub-116230",
                     "sub-3620",
@@ -197,8 +200,8 @@ configurations = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403", "sub-40733"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path / "normcorr" / FLIRT / "2009Asym" / ddof,
-                "path_HC": HC_path / "normcorr" / FLIRT / "2009Asym" / ddof,
+                "path_PD": PD_path_cost / "normcorr" / FLIRT / "2009Asym" / ddof,
+                "path_HC": HC_path_cost / "normcorr" / FLIRT / "2009Asym" / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }
@@ -206,7 +209,7 @@ configurations = {
     },
     "normmi": {
         FLIRT: {
-            "2009Asym": {
+            "MNI152NLin2009cAsym_res-01": {
                 "failed_subjects_HC": [
                     "sub-116230",
                     "sub-3620",
@@ -214,8 +217,8 @@ configurations = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path / "normmi" / FLIRT / "2009Asym" / ddof,
-                "path_HC": HC_path / "normmi" / FLIRT / "2009Asym" / ddof,
+                "path_PD": PD_path_cost / "normmi" / FLIRT / "2009Asym" / ddof,
+                "path_HC": HC_path_cost / "normmi" / FLIRT / "2009Asym" / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }
