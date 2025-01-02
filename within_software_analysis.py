@@ -9,8 +9,9 @@ from copy import deepcopy
 from fsl.transform import affine
 
 from lnrgst_mca import metrics_utils
-from lnrgst_mca.plot_utils import plotter, hist_plotter
-from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes, FD_SD_x_lim
+from lnrgst_mca.plot_utils import plotter  # , hist_plotter
+from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes  # , FD_SD_x_lim
+
 
 def largest_indces(array, dict_, n=4):
     largest_idx = np.argsort(array, axis=0)[-n:]
@@ -103,7 +104,7 @@ def decompose_and_convert(mat_dict, n_mca=10, mode="mca"):
     return scales, translations, angles, shears
 
 
-def save_array(software, results, path, fmt='%.18e'):
+def save_array(software, results, path, fmt="%.18e"):
 
     for key, value in results.items():
         np.savetxt(path / f"{software}_{key}.txt", value, fmt=fmt)
@@ -136,7 +137,8 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--template", type=str, help="Template name", required=True)
     parser.add_argument("-s", "--software", type=str, help="Software name", required=True)
     parser.add_argument("-d", "--diagram_path", type=str, help="Path to save output plots", required=True)
-    parser.add_argument("-c", "--cost_function", type=str, help="Cost function", default=None)
+    parser.add_argument("-c", "--cost_function", type=str, help="Cost function", default=False)
+    parser.add_argument("-v", "--verrou", type=bool, help="Cost function", default=False)
     args = parser.parse_args()
 
     validate_arguments(args)
@@ -144,15 +146,14 @@ if __name__ == "__main__":
     template = args.template
     software = args.software
     cost_function = args.cost_function
+    verrou = args.verrou
     diagram_path = Path(args.diagram_path) / software / template
     if args.cost_function:
         diagram_path = diagram_path / cost_function
     diagram_path.mkdir(parents=True, exist_ok=True)
 
     # Load configurations
-    failed_subjects_HC, failed_subjects_PD, mat_dic_PD, error_PD, mat_dic_HC, error_HC = get_configurations(
-        args.software, args.template, args.cost_function
-    )
+    failed_subjects_HC, failed_subjects_PD, mat_dic_PD, error_PD, mat_dic_HC, error_HC = get_configurations(software, template, cost_function, verrou)
 
     if error_PD or error_HC:
         logging.error("Error in loading MCA matrices: %s, %s", error_PD, error_HC)
@@ -222,142 +223,142 @@ if __name__ == "__main__":
 
     # plotting mean and standard deviation for 12 parameters
 
-    basic_info_plotter(
-        translations_mca_fine_PD,
-        translations_mca_fine_HC,
-        software=software,
-        variable="Translations",
-        path=diagram_path,
-        axis_labels=["x", "y", "z"],
-        ylable="(mm)",
-        y_lim_mean=[(-14, 12), (-60, 25), (-42, 61)],
-        y_lim_sd=[(0, 0.1), (0, 0.2), (0, 0.2)],
-    )
+    # basic_info_plotter(
+    #     translations_mca_fine_PD,
+    #     translations_mca_fine_HC,
+    #     software=software,
+    #     variable="Translations",
+    #     path=diagram_path,
+    #     axis_labels=["x", "y", "z"],
+    #     ylable="(mm)",
+    #     y_lim_mean=[(-14, 12), (-60, 25), (-42, 61)],
+    #     y_lim_sd=[(0, 0.1), (0, 0.2), (0, 0.2)],
+    # )
 
-    basic_info_plotter(
-        angles_mca_fine_PD,
-        angles_mca_fine_HC,
-        software=software,
-        variable="Angles",
-        path=diagram_path,
-        axis_labels=["x", "y", "z"],
-        ylable="(degree)",
-        y_lim_mean=[(-40, 5), (-10.5, 8), (-11, 11)],
-        y_lim_sd=[(0, 0.5), (0, 0.25), (0, 0.26)],
-    )
+    # basic_info_plotter(
+    #     angles_mca_fine_PD,
+    #     angles_mca_fine_HC,
+    #     software=software,
+    #     variable="Angles",
+    #     path=diagram_path,
+    #     axis_labels=["x", "y", "z"],
+    #     ylable="(degree)",
+    #     y_lim_mean=[(-40, 5), (-10.5, 8), (-11, 11)],
+    #     y_lim_sd=[(0, 0.5), (0, 0.25), (0, 0.26)],
+    # )
 
-    basic_info_plotter(
-        scales_mca_fine_PD,
-        scales_mca_fine_HC,
-        software=software,
-        variable="Scales",
-        path=diagram_path,
-        axis_labels=["x", "y", "z"],
-        y_lim_mean=[(0.825, 1.27), (0.8, 1.32), (0.7, 1.35)],
-        y_lim_sd=[(0, 0.002), (0, 0.0025), (0, 0.005)],
-    )
+    # basic_info_plotter(
+    #     scales_mca_fine_PD,
+    #     scales_mca_fine_HC,
+    #     software=software,
+    #     variable="Scales",
+    #     path=diagram_path,
+    #     axis_labels=["x", "y", "z"],
+    #     y_lim_mean=[(0.825, 1.27), (0.8, 1.32), (0.7, 1.35)],
+    #     y_lim_sd=[(0, 0.002), (0, 0.0025), (0, 0.005)],
+    # )
 
-    basic_info_plotter(
-        shears_mca_fine_PD,
-        shears_mca_fine_HC,
-        software=software,
-        variable="Shears",
-        path=diagram_path,
-        axis_labels=["x", "y", "z"],
-        y_lim_mean=[(-0.065, 0.065), (-0.045, 0.045), (-0.22, 0.105)],
-        y_lim_sd=[(0, 0.003), (0, 0.004), (0, 0.008)],
-    )
+    # basic_info_plotter(
+    #     shears_mca_fine_PD,
+    #     shears_mca_fine_HC,
+    #     software=software,
+    #     variable="Shears",
+    #     path=diagram_path,
+    #     axis_labels=["x", "y", "z"],
+    #     y_lim_mean=[(-0.065, 0.065), (-0.045, 0.045), (-0.22, 0.105)],
+    #     y_lim_sd=[(0, 0.003), (0, 0.004), (0, 0.008)],
+    # )
 
-    basic_info_plotter(
-        translations_mca_failed_PD,
-        translations_mca_failed_HC,
-        software=software,
-        variable="Translations failed",
-        path=diagram_path,
-        axis_labels=["x", "y", "z"],
-        ylable="(mm)",
-    )
-    basic_info_plotter(
-        angles_mca_failed_PD,
-        angles_mca_failed_HC,
-        software=software,
-        variable="Angles failed",
-        path=diagram_path,
-        axis_labels=["x", "y", "z"],
-        ylable="(degree)",
-    )
-    basic_info_plotter(
-        scales_mca_failed_PD, scales_mca_failed_HC, software=software, variable="Scales failed", path=diagram_path, axis_labels=["x", "y", "z"]
-    )
-    basic_info_plotter(
-        shears_mca_failed_PD, shears_mca_failed_HC, software=software, variable="Shears failed", path=diagram_path, axis_labels=["x", "y", "z"]
-    )
+    # basic_info_plotter(
+    #     translations_mca_failed_PD,
+    #     translations_mca_failed_HC,
+    #     software=software,
+    #     variable="Translations failed",
+    #     path=diagram_path,
+    #     axis_labels=["x", "y", "z"],
+    #     ylable="(mm)",
+    # )
+    # basic_info_plotter(
+    #     angles_mca_failed_PD,
+    #     angles_mca_failed_HC,
+    #     software=software,
+    #     variable="Angles failed",
+    #     path=diagram_path,
+    #     axis_labels=["x", "y", "z"],
+    #     ylable="(degree)",
+    # )
+    # basic_info_plotter(
+    #     scales_mca_failed_PD, scales_mca_failed_HC, software=software, variable="Scales failed", path=diagram_path, axis_labels=["x", "y", "z"]
+    # )
+    # basic_info_plotter(
+    #     shears_mca_failed_PD, shears_mca_failed_HC, software=software, variable="Shears failed", path=diagram_path, axis_labels=["x", "y", "z"]
+    # )
 
-    # plotting framewise displacment
-    basic_info_plotter(
-        FD_mca_results["FD_PD_fine"],
-        FD_mca_results["FD_HC_fine"],
-        software=software,
-        variable="Framewise Displacement",
-        path=diagram_path,
-        figure_size=(5, 4),
-        ylable="(mm)",
-        y_lim_mean=[(10, 110)],
-        y_lim_sd=[(0, 0.3)],
-    )
+    # # plotting framewise displacment
+    # basic_info_plotter(
+    #     FD_mca_results["FD_PD_fine"],
+    #     FD_mca_results["FD_HC_fine"],
+    #     software=software,
+    #     variable="Framewise Displacement",
+    #     path=diagram_path,
+    #     figure_size=(5, 4),
+    #     ylable="(mm)",
+    #     y_lim_mean=[(10, 110)],
+    #     y_lim_sd=[(0, 0.3)],
+    # )
 
-    basic_info_plotter(
-        FD_mca_results["FD_PD_failed"],
-        FD_mca_results["FD_HC_failed"],
-        software=software,
-        variable="Framewise Displacement failed",
-        path=diagram_path,
-        figure_size=(5, 4),
-        ylable="(mm)",
-    )
-    basic_info_plotter(
-        FD_mca_results["FD_all_PD"],
-        FD_mca_results["FD_all_HC"],
-        software=software,
-        variable="Framewise Displacement All",
-        path=diagram_path,
-        figure_size=(5, 4),
-        ylable="(mm)",
-    )
+    # basic_info_plotter(
+    #     FD_mca_results["FD_PD_failed"],
+    #     FD_mca_results["FD_HC_failed"],
+    #     software=software,
+    #     variable="Framewise Displacement failed",
+    #     path=diagram_path,
+    #     figure_size=(5, 4),
+    #     ylable="(mm)",
+    # )
+    # basic_info_plotter(
+    #     FD_mca_results["FD_all_PD"],
+    #     FD_mca_results["FD_all_HC"],
+    #     software=software,
+    #     variable="Framewise Displacement All",
+    #     path=diagram_path,
+    #     figure_size=(5, 4),
+    #     ylable="(mm)",
+    # )
 
-    hist_plotter(
-        datasets=[np.mean(FD_mca_results["FD_all_fine"], axis=1), np.mean(FD_mca_results["FD_all_failed"], axis=1)],
-        title=f"Mean FD: {software} - {template}",
-        path=diagram_path,
-        bins=FD_mean_bin_sizes[software][template],
-        labels=["Passed", "failed"],
-        xlabel="(mm)",
-    )
-    hist_plotter(
-        datasets=[np.std(FD_mca_results["FD_all_fine"], axis=1), np.std(FD_mca_results["FD_all_failed"], axis=1)],
-        title=f"SD of  FD: {software} - {template}",
-        path=diagram_path,
-        bins=FD_sd_bin_sizes[software][template],
-        labels=["Passed", "failed"],
-        xlim=FD_SD_x_lim[software][template],
-        xlabel="(mm)",
-    )
+    # hist_plotter(
+    #     datasets=[np.mean(FD_mca_results["FD_all_fine"], axis=1), np.mean(FD_mca_results["FD_all_failed"], axis=1)],
+    #     title=f"Mean FD: {software} - {template}",
+    #     path=diagram_path,
+    #     bins=FD_mean_bin_sizes[software][template],
+    #     labels=["Passed", "failed"],
+    #     xlabel="(mm)",
+    # )
+    # hist_plotter(
+    #     datasets=[np.std(FD_mca_results["FD_all_fine"], axis=1), np.std(FD_mca_results["FD_all_failed"], axis=1)],
+    #     title=f"SD of  FD: {software} - {template}",
+    #     path=diagram_path,
+    #     bins=FD_sd_bin_sizes[software][template],
+    #     labels=["Passed", "failed"],
+    #     xlim=FD_SD_x_lim[software][template],
+    #     xlabel="(mm)",
+    # )
 
-    hist_plotter(
-        datasets=[MAD_results["all_mad_fine"], MAD_results["all_mad_failed"]],
-        title=f"Mean Absolute Difference of FD: {software} - {template}",
-        path=diagram_path,
-        labels=["Passed", "Failed"],
-        xlabel="(mm)",
-    )
+    # hist_plotter(
+    #     datasets=[MAD_results["all_mad_fine"], MAD_results["all_mad_failed"]],
+    #     title=f"Mean Absolute Difference of FD: {software} - {template}",
+    #     path=diagram_path,
+    #     labels=["Passed", "Failed"],
+    #     xlabel="(mm)",
+    # )
 
-    hist_plotter(
-        datasets=[np.log(np.std(FD_mca_results["FD_all_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_all_failed"], axis=1))],
-        title=f"log SD of FD: {software} - {template}",
-        path=diagram_path,
-        labels=["Passed", "Failed"],
-        xlabel="log(value) (mm)",
-    )
+    # hist_plotter(
+    #     datasets=[np.log(np.std(FD_mca_results["FD_all_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_all_failed"], axis=1))],
+    #     title=f"log SD of FD: {software} - {template}",
+    #     path=diagram_path,
+    #     labels=["Passed", "Failed"],
+    #     xlabel="log(value) (mm)",
+    # )
 
     # saving
     path = diagram_path / "reports"
@@ -371,9 +372,7 @@ if __name__ == "__main__":
     save_array(software, IDs, path, fmt="%s")
     # t test on standard deviation of cohorts
     t, p = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_all_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_all_HC"], axis=1)))
-    t_fine, p_fine = stats.ttest_ind(
-        np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1))
-    )
+    t_fine, p_fine = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)))
 
     #
     fine_mean_of_std = np.mean(np.log(np.std(FD_mca_results["FD_all_fine"], axis=1)))
@@ -411,3 +410,43 @@ if __name__ == "__main__":
     else:
         df.to_csv(output_csv)
     logging.info("Results saved to %s", output_csv)
+
+    from scipy.stats import shapiro
+
+    stat, p = shapiro(np.std(FD_mca_results["FD_all_fine"], axis=1))
+    print(p)
+
+    from sklearn.neighbors import KernelDensity
+
+    kde = KernelDensity(kernel="gaussian", bandwidth=0.01).fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
+    log_probs = kde.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
+    probs = np.exp(log_probs)
+    print(probs)
+
+    from sklearn.mixture import GaussianMixture
+
+    # Fit GMM on passed data
+    gmm = GaussianMixture(n_components=1, random_state=42)
+    gmm.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
+
+    # Calculate probabilities for failed data
+    probs = gmm.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
+    print(np.exp(probs))
+
+    from sklearn.ensemble import IsolationForest
+
+    # Fit Isolation Forest on passed data
+    clf = IsolationForest(contamination=0.05, random_state=42)
+    clf.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
+
+    # Predict anomalies for failed data (-1 = anomaly, 1 = normal)
+    predictions = clf.predict(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
+    print(predictions)
+
+    from sklearn.svm import OneClassSVM
+
+    clf = OneClassSVM(kernel="rbf", nu=0.05, gamma=0.1)
+    clf.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
+
+    predictions = clf.predict(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))  # -1 for anomaly, 1 for normal
+    print("Predictions:", predictions)
