@@ -35,8 +35,11 @@ pipeline_path = Path("./pipline")
 PD_path = pipeline_path / "pd" / "outputs"
 HC_path = pipeline_path / "hc" / "outputs"
 cost_exp_path = Path("/home/niusham/projects/rrg-glatard/niusham/mca_linear_registration/metrics_exp")
+verrou_path = Path("/home/niusham/projects/rrg-glatard/niusham/mca_linear_registration/verrou")
 PD_path_cost = cost_exp_path / "pd" / "output"
 HC_path_cost = cost_exp_path / "hc" / "output"
+verrou_PD_path = verrou_path / "pd" / "output"
+verrou_HC_path = verrou_path / "hc" / "output"
 ddof = "anat-12dofs"
 
 # the pattern is for affine only change. add the image too
@@ -155,7 +158,7 @@ configurations = {
     },
 }
 
-configurations = {
+configurations_cost = {
     # "leastsq": {
     #     FLIRT: {
     #         "2009Asym": {
@@ -226,11 +229,56 @@ configurations = {
     },
 }
 
+verrou_configuration = {
+    SPM: {
+        MNI2009cAsym: {
+            "failed_subjects_HC": [
+                "sub-3104",
+                "sub-116230",
+                "sub-3620",
+                "sub-3316",
+                "sub-3361",
+                "sub-3570",
+                "sub-3615",
+                "sub-3767",
+                "sub-3811",
+                "sub-3853",
+                "sub-3969",
+                "sub-4067",
+                "sub-4079",
+            ],
+            "failed_subjects_PD": [
+                "sub-3365",
+                "sub-3403",
+                "sub-3586",
+                "sub-3700",
+                "sub-3709",
+                "sub-3823",
+                "sub-3960",
+                "sub-3970",
+                "sub-40733",
+                "sub-42264",
+                "sub-75562",
+                "sub-106703",
+                "sub-139982",
+            ],
+            "PD_list": PD_list_path,
+            "HC_list": HC_list_path,
+            "path_PD": verrou_PD_path / SPM / MNI2009cAsym / ddof,
+            "path_HC": verrou_HC_path / SPM / MNI2009cAsym / ddof,
+            "pattern_PD": "_ses-BL",
+            "pattern_HC": "_ses-BL",
+        }
+    }
+}
 
-def get_configurations(software, template, cost_function=False):
 
-    if cost_function:
-        config = configurations[cost_function][software][template]
+def get_configurations(software, template, cost_function=False, verrou=False):
+
+    if verrou:
+        config = verrou_configuration[software][template]
+    elif cost_function:
+        config = configurations_cost[cost_function][software][template]
     else:
         config = configurations[software][template]
 

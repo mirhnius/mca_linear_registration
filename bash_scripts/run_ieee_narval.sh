@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=flirt_PD
-#SBATCH --output=flirt_ieee_PD.out
-#SBATCH --error=flirt_ieee_PD.err
+#SBATCH --job-name=ants_PD
+#SBATCH --output=ants_ieee_PD.out
+#SBATCH --error=ants_ieee_PD.err
 #SBATCH --time=2:30:0
 #SBATCH --ntasks=50
 #SBATCH --mem-per-cpu=2G
@@ -15,4 +15,7 @@ source /home/niusham/py11/bin/activate
 # parallel "time bosh exec launch --imagepath ./fuzzy_fsl_6.0.4_latest.sif ./flirt-fuzzy.json ./{1}" ::: ./invocations_PD/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
 # parallel "time bosh exec launch --imagepath container_images/glatard_fsl_6.0.4_fuzzy-2023-12-08-a22e376466e7.simg descriptors/flirt-fuzzy.json ./{1}" ::: invocations/mca/${SLURM_ARRAY_TASK_ID}/*
 # parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-glatard/brainhack-2023-linear-registration/container_images/fuzzy_fsl_6.0.4_latest.sif ./flirt-fuzzy.json ./{1}" ::: ./invocations/anat-12dofs/mca/${SLURM_ARRAY_TASK_ID}/*
-parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-glatard/brainhack-2023-linear-registration/container_images/vnmd_fsl_6.0.4-2021-04-22-ac3439c3920c.simg ./flirt.json ./{1}" ::: ./invocations_PD/anat-12dofs/ieee/*
+#parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-glatard/brainhack-2023-linear-registration/container_images/vnmd_fsl_6.0.4-2021-04-22-ac3439c3920c.simg ./flirt.json ./{1}" ::: ./invocations_PD/anat-12dofs/ieee/*
+
+#ants
+parallel "time bosh exec launch --imagepath /home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/ants_v2.5.0.sif ./descriptors/ANTS.json ./{1}" ::: ./invocations_PD/ants/anat-12dofs/ieee/*
