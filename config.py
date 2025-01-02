@@ -161,7 +161,7 @@ configurations = {
 configurations_cost = {
     # "leastsq": {
     #     FLIRT: {
-    #         "2009Asym": {
+    #         "MNI2009cAsym: {
     #             "failed_subjects_HC": [
     #                 "sub-116230",
     #                 "sub-3620",
@@ -169,8 +169,8 @@ configurations_cost = {
     #             "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
     #             "PD_list": PD_list_path,
     #             "HC_list": HC_list_path,
-    #             "path_PD": PD_path / "leastsq" / FLIRT / "2009Asym" / ddof,
-    #             "path_HC": HC_path / "leastsq" / FLIRT / "2009Asym" / ddof,
+    #             "path_PD": PD_path / "leastsq" / FLIRT / MNI2009cAsym / ddof,
+    #             "path_HC": HC_path / "leastsq" / FLIRT / MNI2009cAsym / ddof,
     #             "pattern_PD": "_ses-BL",
     #             "pattern_HC": "_ses-BL",
     #         }
@@ -178,7 +178,7 @@ configurations_cost = {
     # },
     "mutualinfo": {
         FLIRT: {
-            "MNI152NLin2009cAsym_res-01": {
+            MNI2009cAsym: {
                 "failed_subjects_HC": [
                     "sub-116230",
                     "sub-3620",
@@ -186,8 +186,8 @@ configurations_cost = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path_cost / "mutualinfo" / FLIRT / "2009Asym" / ddof,
-                "path_HC": HC_path_cost / "mutualinfo" / FLIRT / "2009Asym" / ddof,
+                "path_PD": PD_path_cost / "mutualinfo" / FLIRT / MNI2009cAsym / ddof,
+                "path_HC": HC_path_cost / "mutualinfo" / FLIRT / MNI2009cAsym / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }
@@ -195,7 +195,7 @@ configurations_cost = {
     },
     "normcorr": {
         FLIRT: {
-            "MNI152NLin2009cAsym_res-01": {
+            MNI2009cAsym: {
                 "failed_subjects_HC": [
                     "sub-116230",
                     "sub-3620",
@@ -203,8 +203,8 @@ configurations_cost = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403", "sub-40733"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path_cost / "normcorr" / FLIRT / "2009Asym" / ddof,
-                "path_HC": HC_path_cost / "normcorr" / FLIRT / "2009Asym" / ddof,
+                "path_PD": PD_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
+                "path_HC": HC_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }
@@ -212,7 +212,7 @@ configurations_cost = {
     },
     "normmi": {
         FLIRT: {
-            "MNI152NLin2009cAsym_res-01": {
+            MNI2009cAsym: {
                 "failed_subjects_HC": [
                     "sub-116230",
                     "sub-3620",
@@ -220,8 +220,8 @@ configurations_cost = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path_cost / "normmi" / FLIRT / "2009Asym" / ddof,
-                "path_HC": HC_path_cost / "normmi" / FLIRT / "2009Asym" / ddof,
+                "path_PD": PD_path_cost / "normmi" / FLIRT / MNI2009cAsym / ddof,
+                "path_HC": HC_path_cost / "normmi" / FLIRT / MNI2009cAsym / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }

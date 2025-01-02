@@ -82,7 +82,7 @@ def concatenate_cohorts(g1, g2):
         return g2
     if len(g2) == 0:
         return g2
-    return np.concatenate([g1, g2])
+    return np.concatenate([g1, g2], axis=0)
 
 
 def setup_logging():
@@ -204,8 +204,8 @@ if __name__ == "__main__":
         "FD_ieee_HC_failed": metrics_utils.FD_all_subjects(translation_ieee_failed_HC[:, np.newaxis, :], angles_ieee_failed_HC[:, np.newaxis, :]),
     }
 
-    FD_ieee_results["FD_all_fine"] = concatenate_cohorts(FD_ieee_results["FD_ieee_PD_fine"], FD_ieee_results["FD_ieee_HC_fine"])
-    FD_ieee_results["FD_all_failed"] = concatenate_cohorts(FD_ieee_results["FD_ieee_PD_failed"], FD_ieee_results["FD_ieee_HC_failed"])
+    FD_ieee_results["FD_ieee_all_fine"] = concatenate_cohorts(FD_ieee_results["FD_ieee_PD_fine"], FD_ieee_results["FD_ieee_HC_fine"])
+    FD_ieee_results["FD_ieee_all_failed"] = concatenate_cohorts(FD_ieee_results["FD_ieee_PD_failed"], FD_ieee_results["FD_ieee_HC_failed"])
 
     # calculating the mean absolute difference between MCA framewise displacements and the IEEE framewise displacement
     MAD_results = {
@@ -414,24 +414,24 @@ if __name__ == "__main__":
     from scipy.stats import shapiro
 
     stat, p = shapiro(np.std(FD_mca_results["FD_all_fine"], axis=1))
-    print(p)
+    print("Normality test", p)
 
-    from sklearn.neighbors import KernelDensity
+    # from sklearn.neighbors import KernelDensity
 
-    kde = KernelDensity(kernel="gaussian", bandwidth=0.01).fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
-    log_probs = kde.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
-    probs = np.exp(log_probs)
-    print(probs)
+    # kde = KernelDensity(kernel="gaussian", bandwidth=0.01).fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
+    # log_probs = kde.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
+    # probs = np.exp(log_probs)
+    # print(probs)
 
-    from sklearn.mixture import GaussianMixture
+    # from sklearn.mixture import GaussianMixture
 
-    # Fit GMM on passed data
-    gmm = GaussianMixture(n_components=1, random_state=42)
-    gmm.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
+    # # Fit GMM on passed data
+    # gmm = GaussianMixture(n_components=1, random_state=42)
+    # gmm.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
 
-    # Calculate probabilities for failed data
-    probs = gmm.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
-    print(np.exp(probs))
+    # # Calculate probabilities for failed data
+    # probs = gmm.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
+    # print(np.exp(probs))
 
     from sklearn.ensemble import IsolationForest
 
@@ -441,7 +441,7 @@ if __name__ == "__main__":
 
     # Predict anomalies for failed data (-1 = anomaly, 1 = normal)
     predictions = clf.predict(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
-    print(predictions)
+    print("Isolation forest prediction", predictions)
 
     from sklearn.svm import OneClassSVM
 
@@ -449,4 +449,4 @@ if __name__ == "__main__":
     clf.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
 
     predictions = clf.predict(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))  # -1 for anomaly, 1 for normal
-    print("Predictions:", predictions)
+    print("SVM predictions:", predictions)
