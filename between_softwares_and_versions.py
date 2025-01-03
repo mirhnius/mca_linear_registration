@@ -294,3 +294,91 @@ if __name__ == "__main__":
     print_t_test_results_for_same_template(same_template_results)
     same_software_results = perform_t_tests_same_software(data, templates, softwares)
     print_t_test_results_for_same_software(same_software_results)
+
+    def func_fd_passed(s, t):
+        return "FD_fine_all.txt"
+
+    data = read_all_versions(parent_path, softwares, templates, [func_fd_passed], dtype=float)
+
+    def func_fd_passed_IDs(s, t):
+        return "IDs_fine_all.txt"
+
+    fine_IDs = read_all_versions(parent_path, softwares, templates, [func_fd_passed_IDs], str)
+
+    data_for_software_comparison = remove_failed_ids_by_template(data, parent_path, fine_IDs, templates, softwares)
+    same_template_results = perform_t_tests_same_templates(data_for_software_comparison, templates, softwares)
+    print_t_test_results_for_same_template(same_template_results)
+
+    data = data_for_software_comparison
+    sd_data = {software: {template: np.std(array, axis=1) for template, array in templates.items()} for software, templates in data.items()}
+
+    from scipy.stats import f_oneway  # shapiro, levene,
+
+    anova_stat, anova_p = f_oneway(
+        sd_data["ants"]["MNI152NLin2009cAsym_res-01"], sd_data["flirt"]["MNI152NLin2009cAsym_res-01"], sd_data["spm"]["MNI152NLin2009cAsym_res-01"]
+    )
+    anova_stat, anova_p = f_oneway(
+        sd_data["ants"]["MNI152NLin2009cSym_res-1"], sd_data["flirt"]["MNI152NLin2009cSym_res-1"], sd_data["spm"]["MNI152NLin2009cSym_res-1"]
+    )
+
+    # from statsmodels.stats.anova import anova_lm
+    import pandas as pd
+
+    # from statsmodels.formula.api import ols
+
+    # sd_data = [
+    # {"software": software, "template": template, "sd": np.std(array, axis=1)}
+    # for software, templates in data.items()
+    # for template, array in templates.items()
+
+    # ]
+    # Step 1: Flatten the nested dictionary
+    flattened_data = []
+    subject_id = 1  # Unique identifier for each subject
+    for software, templates in sd_data.items():
+        for template, sd_array in templates.items():
+            subject_id = 1
+            for sd in sd_array:
+                flattened_data.append({"subject": subject_id, "software": software, "template": template, "sd": sd})
+                subject_id += 1  # Increment subject ID for each SD value
+
+    # Step 2: Create a DataFrame
+    df = pd.DataFrame(flattened_data)
+    # df = pd.DataFrame(sd_data)
+
+    # Step 2: Perform two-way ANOVA
+    # Use `ols` to fit the model: "sd ~ C(software) + C(template) + C(software):C(template)"
+    # model = ols('sd ~ C(software) + C(template) + C(software):C(template)', data=df).fit()
+
+    # # Perform ANOVA
+    # anova_results = anova_lm(model)
+
+    import pingouin as pg
+
+    aov = pg.rm_anova(dv="sd", within=["software", "template"], subject="subject", data=df, detailed=True)
+
+    # Display the results
+    print(aov)
+    aov.to_csv("rm_anova_results.csv", index=False)
+
+    # from scipy.stats import kruskal  # for different subjects!!
+
+    # print(kruskal(sd_data['ants']['MNI152NLin2009cAsym_res-01'],
+    # sd_data['flirt']['MNI152NLin2009cAsym_res-01'], sd_data['spm']['MNI152NLin2009cAsym_res-01']))
+    # print(kruskal(sd_data['ants']['MNI152NLin2009cSym_res-1'],
+    #  sd_data['flirt']['MNI152NLin2009cSym_res-1'], sd_data['spm']['MNI152NLin2009cSym_res-1']))
+
+    from scipy.stats import friedmanchisquare
+
+    print(
+        friedmanchisquare(
+            sd_data["ants"]["MNI152NLin2009cAsym_res-01"],
+            sd_data["flirt"]["MNI152NLin2009cAsym_res-01"],
+            sd_data["spm"]["MNI152NLin2009cAsym_res-01"],
+        )
+    )
+    print(
+        friedmanchisquare(
+            sd_data["ants"]["MNI152NLin2009cSym_res-1"], sd_data["flirt"]["MNI152NLin2009cSym_res-1"], sd_data["spm"]["MNI152NLin2009cSym_res-1"]
+        )
+    )
