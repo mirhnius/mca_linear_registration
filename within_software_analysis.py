@@ -110,7 +110,7 @@ def save_array(software, results, path, fmt="%.18e"):
         np.savetxt(path / f"{software}_{key}.txt", value, fmt=fmt)
 
 
-def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine, all_mad_failed, IDs_failed, probabilities):
+def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine, all_mad_failed, IDs_failed, probabilities, predictions):
     with open(path / "report.txt", "w") as f:
         f.write("-------------- {} - {} --------------\n".format(software, template))
         f.write("HC vs PD t-test on standard deviation of framewise displacement for all subjects  t:{:.3f} p:{:.3f}\n".format(t, p))
@@ -121,6 +121,11 @@ def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine
         f.write("Max of Mean Absolute Difference of failed QC subjects: {:.3e} mm\n".format(np.max(all_mad_failed)))
         f.write("Number of passed QC subjects with higher than 1 mm Mean Absolute Difference: {}\n".format(np.sum(all_mad_fine >= 1.0)))
         f.write("Number of passed QC subjects with higher than 0.2 mm Mean Absolute Difference: {}\n".format(np.sum(all_mad_fine >= 0.2)))
+        f.write("\n")
+        for key, value in predictions.items():
+            f.write(f"Predictions using {key}:\n")
+            f.write(f"{value}\n")
+        f.write("\n")
         f.write("------------------------------------------------------------\n")
         f.write("\n")
         f.write("The probabilities of failed subjects belonging to the fine distribution:\n")
@@ -414,8 +419,8 @@ if __name__ == "__main__":
     probs_fine = np.exp(log_probs_fine)
     threshold = np.percentile(probs_fine, 5)
     probabilities = kde.score_samples(std_failed.reshape(-1, 1))
-    print(probabilities < threshold)
-    print([-1 if p < threshold else 1 for p in probabilities])
+    # print(probabilities < threshold)
+    prediction_kde = [-1 if p < threshold else 1 for p in probabilities]
 
     from sklearn.ensemble import IsolationForest
 
@@ -424,21 +429,34 @@ if __name__ == "__main__":
     clf.fit(std_fine.reshape(-1, 1))
 
     # Predict anomalies for failed data (-1 = anomaly, 1 = normal)
-    predictions = clf.predict(std_failed.reshape(-1, 1))
-    print("Isolation forest prediction", predictions)
+    predictions_iso_forest = clf.predict(std_failed.reshape(-1, 1))
+    print("Isolation forest prediction", predictions_iso_forest)
 
     from sklearn.svm import OneClassSVM
 
     clf = OneClassSVM(kernel="rbf", nu=0.05, gamma=0.1)
     clf.fit(std_fine.reshape(-1, 1))
 
-    predictions = clf.predict(std_failed.reshape(-1, 1))  # -1 for anomaly, 1 for normal
-    print("SVM predictions:", predictions)
+    predictions_svm = clf.predict(std_failed.reshape(-1, 1))  # -1 for anomaly, 1 for normal
+    print("SVM predictions:", predictions_svm)
 
-    # np.savetxt(path / "probabilities_failed.txt", probabilities)
-    # generate_report(
-    #     path, software, template, t, p, t_fine, p_fine, MAD_results["all_mad_fine"], MAD_results["all_mad_failed"], IDs["IDs_failed"], probabilities
-    # )
+    predictions = {"KDE": prediction_kde, "isolation_forest": predictions_iso_forest, "svm": predictions_svm}
+
+    np.savetxt(path / "probabilities_failed.txt", probabilities)
+    generate_report(
+        path,
+        software,
+        template,
+        t,
+        p,
+        t_fine,
+        p_fine,
+        MAD_results["all_mad_fine"],
+        MAD_results["all_mad_failed"],
+        IDs["IDs_failed"],
+        probabilities,
+        predictions,
+    )
 
     save_array(software, MAD_results, path)
     save_array(software, FD_mca_results, path)
