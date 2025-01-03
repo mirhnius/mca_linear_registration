@@ -370,19 +370,75 @@ if __name__ == "__main__":
     }
     IDs["IDs_all"] = concatenate_cohorts(IDs["IDs_fine"], IDs["IDs_failed"])
     save_array(software, IDs, path, fmt="%s")
-    # t test on standard deviation of cohorts
+
+    from scipy.stats import shapiro
+
+    stat, p = shapiro(np.std(FD_mca_results["FD_all_fine"], axis=1))
+    print("Normality test", p)
+
+    # t test on standard deviation of cohorts to test if varibility of healthy cohort is different from parkinsonian paitents
+    # since even the log data is not normal t-test is not reliable here.
     t, p = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_all_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_all_HC"], axis=1)))
     t_fine, p_fine = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)))
 
-    #
-    fine_mean_of_std = np.mean(np.log(np.std(FD_mca_results["FD_all_fine"], axis=1)))
-    fine_std_of_std = np.std(np.log(np.std(FD_mca_results["FD_all_fine"], axis=1)))
-    probabilities = stats.norm.pdf(np.log(np.std(FD_mca_results["FD_all_failed"], axis=1)), fine_mean_of_std, fine_std_of_std)
+    # fit a normal distribution to sd of passed qc subjects: use for to study wether failed subjects are outlier
+    # This assumes that data is normal which is not in my case
 
-    np.savetxt(path / "probabilities_failed.txt", probabilities)
-    generate_report(
-        path, software, template, t, p, t_fine, p_fine, MAD_results["all_mad_fine"], MAD_results["all_mad_failed"], IDs["IDs_failed"], probabilities
-    )
+    # from scipy.stats import norm
+    # log_std_fine = np.log(np.std(FD_mca_results["FD_all_fine"], axis=1))
+    # fine_mean_of_std = np.mean(log_std_fine)
+    # fine_std_of_std = np.std(log_std_fine)
+
+    # pdf_fine = norm.pdf(log_std_fine, loc=fine_mean_of_std, scale=fine_std_of_std)
+    # threshold = np.percentile(pdf_fine, 5)  # Set threshold as the 5th percentile
+    # log_std_failed = np.log(np.std(FD_mca_results["FD_all_failed"], axis=1))
+    # probabilities = norm.pdf(log_std_failed, loc=fine_mean_of_std, scale=fine_std_of_std)
+
+    # print(threshold)
+    # print(probabilities)
+    # print(probabilities < threshold)
+
+    # Using kde which is a non parametric pdf estimation method
+    # putting threshold on density by finding density on the 5th quantile and compare to density for failed subjects
+    # "If the density of a failed subject is lower than the density of 95% of passed subjects, it is an outlier."
+    from sklearn.neighbors import KernelDensity
+
+    std_fine = np.std(FD_mca_results["FD_all_fine"], axis=1)
+    std_failed = np.log(np.std(FD_mca_results["FD_all_failed"], axis=1))
+    fine_mean_of_std = np.mean(std_fine)
+    fine_std_of_std = np.std(std_fine)
+
+    kde = KernelDensity(kernel="gaussian", bandwidth=0.01).fit(std_fine.reshape(-1, 1))
+
+    log_probs_fine = kde.score_samples(std_fine.reshape(-1, 1))
+    probs_fine = np.exp(log_probs_fine)
+    threshold = np.percentile(probs_fine, 5)
+    probabilities = kde.score_samples(std_failed.reshape(-1, 1))
+    print(probabilities < threshold)
+    print([-1 if p < threshold else 1 for p in probabilities])
+
+    from sklearn.ensemble import IsolationForest
+
+    # Fit Isolation Forest on passed data
+    clf = IsolationForest(contamination=0.05, random_state=42)
+    clf.fit(std_fine.reshape(-1, 1))
+
+    # Predict anomalies for failed data (-1 = anomaly, 1 = normal)
+    predictions = clf.predict(std_failed.reshape(-1, 1))
+    print("Isolation forest prediction", predictions)
+
+    from sklearn.svm import OneClassSVM
+
+    clf = OneClassSVM(kernel="rbf", nu=0.05, gamma=0.1)
+    clf.fit(std_fine.reshape(-1, 1))
+
+    predictions = clf.predict(std_failed.reshape(-1, 1))  # -1 for anomaly, 1 for normal
+    print("SVM predictions:", predictions)
+
+    # np.savetxt(path / "probabilities_failed.txt", probabilities)
+    # generate_report(
+    #     path, software, template, t, p, t_fine, p_fine, MAD_results["all_mad_fine"], MAD_results["all_mad_failed"], IDs["IDs_failed"], probabilities
+    # )
 
     save_array(software, MAD_results, path)
     save_array(software, FD_mca_results, path)
@@ -402,20 +458,6 @@ if __name__ == "__main__":
         "> 0.2 mm passed MAD": np.sum(MAD_results["all_mad_fine"] >= 0.2),
     }
 
-    output_csv = path / "output.csv"
-    df = pd.DataFrame([record])
-    df.set_index("index", inplace=True)
-    if output_csv.exists():
-        df.to_csv(output_csv, mode="a", header=False)
-    else:
-        df.to_csv(output_csv)
-    logging.info("Results saved to %s", output_csv)
-
-    from scipy.stats import shapiro
-
-    stat, p = shapiro(np.std(FD_mca_results["FD_all_fine"], axis=1))
-    print("Normality test", p)
-
     # from sklearn.neighbors import KernelDensity
 
     # kde = KernelDensity(kernel="gaussian", bandwidth=0.01).fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
@@ -433,20 +475,11 @@ if __name__ == "__main__":
     # probs = gmm.score_samples(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
     # print(np.exp(probs))
 
-    from sklearn.ensemble import IsolationForest
-
-    # Fit Isolation Forest on passed data
-    clf = IsolationForest(contamination=0.05, random_state=42)
-    clf.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
-
-    # Predict anomalies for failed data (-1 = anomaly, 1 = normal)
-    predictions = clf.predict(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))
-    print("Isolation forest prediction", predictions)
-
-    from sklearn.svm import OneClassSVM
-
-    clf = OneClassSVM(kernel="rbf", nu=0.05, gamma=0.1)
-    clf.fit(np.std(FD_mca_results["FD_all_fine"], axis=1).reshape(-1, 1))
-
-    predictions = clf.predict(np.std(FD_mca_results["FD_all_failed"], axis=1).reshape(-1, 1))  # -1 for anomaly, 1 for normal
-    print("SVM predictions:", predictions)
+    output_csv = path / "output.csv"
+    df = pd.DataFrame([record])
+    df.set_index("index", inplace=True)
+    if output_csv.exists():
+        df.to_csv(output_csv, mode="a", header=False)
+    else:
+        df.to_csv(output_csv)
+    logging.info("Results saved to %s", output_csv)
