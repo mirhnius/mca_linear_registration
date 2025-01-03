@@ -113,8 +113,8 @@ def save_array(software, results, path, fmt="%.18e"):
 def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine, all_mad_failed, IDs_failed, probabilities, predictions):
     with open(path / "report.txt", "w") as f:
         f.write("-------------- {} - {} --------------\n".format(software, template))
-        f.write("HC vs PD t-test on standard deviation of framewise displacement for all subjects  t:{:.3f} p:{:.3f}\n".format(t, p))
-        f.write("HC vs PD t-test on standard deviation of framewise displacement for passed QC subjects  t:{:.3f} p:{:.3f}\n".format(t_fine, p_fine))
+        f.write("HC vs PD mannwhitneyu on standard deviation of framewise displacement for all subjects  stat:{:.3f} p:{:.3f}\n".format(t, p))
+        f.write("HC vs PD mannwhitneyu on standard deviation of framewise displacement for passed QC subjects  stat:{:.3f} p:{:.3f}\n".format(t_fine, p_fine))
         f.write("Mean of Mean Absolute Difference of passed QC subjects: {:.3e} mm\n".format(np.mean(all_mad_fine)))
         f.write("Mean of Mean Absolute Difference of failed QC subjects: {:.3e} mm\n".format(np.mean(all_mad_failed)))
         f.write("Max of Mean Absolute Difference of passed QC subjects: {:.3e} mm\n".format(np.max(all_mad_fine)))
@@ -128,7 +128,7 @@ def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine
         f.write("\n")
         f.write("------------------------------------------------------------\n")
         f.write("\n")
-        f.write("The probabilities of failed subjects belonging to the fine distribution:\n")
+        f.write("pdf estimations for failed subjects:\n")
         for i, id in enumerate(IDs_failed):
             f.write("{}: {:.3e}\n".format(id, probabilities[i]))
         f.write("------------------------------------------------------------\n")
@@ -383,8 +383,14 @@ if __name__ == "__main__":
 
     # t test on standard deviation of cohorts to test if varibility of healthy cohort is different from parkinsonian paitents
     # since even the log data is not normal t-test is not reliable here.
-    t, p = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_all_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_all_HC"], axis=1)))
-    t_fine, p_fine = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)))
+    # t, p = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_all_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_all_HC"], axis=1)))
+    # t_fine, p_fine = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)))
+
+
+    from scipy.stats import mannwhitneyu
+    stat, p = mannwhitneyu(np.std(FD_mca_results["FD_all_PD"], axis=1), np.std(FD_mca_results["FD_all_HC"], axis=1), alternative='two-sided')
+    stat_fine, p_fine = mannwhitneyu(np.std(FD_mca_results["FD_PD_fine"], axis=1), np.std(FD_mca_results["FD_HC_fine"], axis=1), alternative='two-sided')
+
 
     # fit a normal distribution to sd of passed qc subjects: use for to study wether failed subjects are outlier
     # This assumes that data is normal which is not in my case
@@ -447,9 +453,9 @@ if __name__ == "__main__":
         path,
         software,
         template,
-        t,
+        stat,
         p,
-        t_fine,
+        stat_fine,
         p_fine,
         MAD_results["all_mad_fine"],
         MAD_results["all_mad_failed"],
@@ -464,9 +470,9 @@ if __name__ == "__main__":
 
     record = {
         "index": f"{software} - {template}",
-        "t": t,
+        "stat": stat,
         "p": p,
-        "t_fine": t_fine,
+        "stat_fine": stat_fine,
         "p_fine": p_fine,
         "mean MAD passed": np.mean(MAD_results["all_mad_fine"]),
         "max MAD passed": np.max(MAD_results["all_mad_fine"]),
