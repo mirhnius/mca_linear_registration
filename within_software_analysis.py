@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 import matplotlib.pyplot as plt
-from scipy import stats
 import pandas as pd
 import numpy as np
 import argparse
@@ -81,7 +80,7 @@ def concatenate_cohorts(g1, g2):
     if len(g1) == 0:
         return g2
     if len(g2) == 0:
-        return g2
+        return g1
     return np.concatenate([g1, g2], axis=0)
 
 
@@ -114,7 +113,11 @@ def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine
     with open(path / "report.txt", "w") as f:
         f.write("-------------- {} - {} --------------\n".format(software, template))
         f.write("HC vs PD mannwhitneyu on standard deviation of framewise displacement for all subjects  stat:{:.3f} p:{:.3f}\n".format(t, p))
-        f.write("HC vs PD mannwhitneyu on standard deviation of framewise displacement for passed QC subjects  stat:{:.3f} p:{:.3f}\n".format(t_fine, p_fine))
+        f.write(
+            "HC vs PD mannwhitneyu on standard deviation of framewise displacement for passed QC subjects  stat:{:.3f} p:{:.3f}\n".format(
+                t_fine, p_fine
+            )
+        )
         f.write("Mean of Mean Absolute Difference of passed QC subjects: {:.3e} mm\n".format(np.mean(all_mad_fine)))
         f.write("Mean of Mean Absolute Difference of failed QC subjects: {:.3e} mm\n".format(np.mean(all_mad_failed)))
         f.write("Max of Mean Absolute Difference of passed QC subjects: {:.3e} mm\n".format(np.max(all_mad_fine)))
@@ -386,11 +389,12 @@ if __name__ == "__main__":
     # t, p = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_all_PD"], axis=1)), np.log(np.std(FD_mca_results["FD_all_HC"], axis=1)))
     # t_fine, p_fine = stats.ttest_ind(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)))
 
-
     from scipy.stats import mannwhitneyu
-    stat, p = mannwhitneyu(np.std(FD_mca_results["FD_all_PD"], axis=1), np.std(FD_mca_results["FD_all_HC"], axis=1), alternative='two-sided')
-    stat_fine, p_fine = mannwhitneyu(np.std(FD_mca_results["FD_PD_fine"], axis=1), np.std(FD_mca_results["FD_HC_fine"], axis=1), alternative='two-sided')
 
+    stat, p = mannwhitneyu(np.std(FD_mca_results["FD_all_PD"], axis=1), np.std(FD_mca_results["FD_all_HC"], axis=1), alternative="two-sided")
+    stat_fine, p_fine = mannwhitneyu(
+        np.std(FD_mca_results["FD_PD_fine"], axis=1), np.std(FD_mca_results["FD_HC_fine"], axis=1), alternative="two-sided"
+    )
 
     # fit a normal distribution to sd of passed qc subjects: use for to study wether failed subjects are outlier
     # This assumes that data is normal which is not in my case
@@ -415,17 +419,13 @@ if __name__ == "__main__":
     from sklearn.neighbors import KernelDensity
 
     std_fine = np.std(FD_mca_results["FD_all_fine"], axis=1)
-    std_failed = np.log(np.std(FD_mca_results["FD_all_failed"], axis=1))
-    fine_mean_of_std = np.mean(std_fine)
-    fine_std_of_std = np.std(std_fine)
+    std_failed = np.std(FD_mca_results["FD_all_failed"], axis=1)
 
-    kde = KernelDensity(kernel="gaussian", bandwidth=0.01).fit(std_fine.reshape(-1, 1))
+    kde = KernelDensity(kernel="exponential", bandwidth=0.01).fit(std_fine.reshape(-1, 1))
 
-    log_probs_fine = kde.score_samples(std_fine.reshape(-1, 1))
-    probs_fine = np.exp(log_probs_fine)
+    probs_fine = kde.score_samples(std_fine.reshape(-1, 1))
     threshold = np.percentile(probs_fine, 5)
     probabilities = kde.score_samples(std_failed.reshape(-1, 1))
-    # print(probabilities < threshold)
     prediction_kde = [-1 if p < threshold else 1 for p in probabilities]
 
     from sklearn.ensemble import IsolationForest
@@ -447,7 +447,7 @@ if __name__ == "__main__":
     print("SVM predictions:", predictions_svm)
 
     predictions = {"KDE": prediction_kde, "isolation_forest": predictions_iso_forest, "svm": predictions_svm}
-
+    print("kde", prediction_kde)
     np.savetxt(path / "probabilities_failed.txt", probabilities)
     generate_report(
         path,
