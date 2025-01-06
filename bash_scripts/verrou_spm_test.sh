@@ -14,7 +14,7 @@ for i in $(seq 1 $N_RUNS); do
     mkdir -p "$OUTPUT_DIR"
 
     docker run --rm -v $(pwd):/code -w /code \
-        verrouspm valgrind --tool=verrou --rounding-mode=random octave --no-gui --eval "run_affreg('${SOURCE_IMAGE}', '${TEMPLATE_IMAGE}', '${OUTPUT_DIR}/registered_image.nii', '${OUTPUT_DIR}/transformation_matrix.txt')"
+        verrouspm valgrind --tool=verrou --rounding-mode=random --trace-children=yes octave --no-gui --eval "run_affreg('${SOURCE_IMAGE}', '${TEMPLATE_IMAGE}', '${OUTPUT_DIR}/registered_image.nii', '${OUTPUT_DIR}/transformation_matrix.txt')"
 done
 wait
 echo "All runs completed"
