@@ -58,7 +58,7 @@
     ],
     "container-image": {
         "type": "docker",
-        "image": "mirhnius/verrouspm",
+        "image": "mirhnius/verrousmp",
         "index": "index.docker.io"
     }
 }
