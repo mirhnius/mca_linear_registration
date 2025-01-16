@@ -507,3 +507,10 @@ if __name__ == "__main__":
     else:
         df.to_csv(output_csv)
     logging.info("Results saved to %s", output_csv)
+
+    FD_all = np.concatenate([FD_mca_results["FD_all_fine"], FD_mca_results["FD_all_failed"]], axis=0)
+    FD_all_std = np.std(FD_all, axis=1)
+    # {"Participant_ID": IDs["IDs_all"], f"FD_std_{software}_{template}": FD_all_std}
+    df = pd.DataFrame({"Participant_ID": IDs["IDs_all"], f"FD_std_{software}_{template}": FD_all_std})
+    df[f"QC_status_{software}_{template}"] = ["fine" if id in IDs["IDs_fine"] else "failed" for id in IDs["IDs_all"]]
+    df["cohort"] = ["PD" if id in mat_dic_fine_PD.keys() else "HC" for id in mat_dic_fine_HC.keys()]
