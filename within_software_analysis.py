@@ -109,7 +109,7 @@ def save_array(software, results, path, fmt="%.18e"):
         np.savetxt(path / f"{software}_{key}.txt", value, fmt=fmt)
 
 
-def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine, all_mad_failed, IDs_failed, probabilities, predictions):
+def generate_report(path, software, template, t, p, t_fine, p_fine, p_shapiro, all_mad_fine, all_mad_failed, IDs_failed, probabilities, predictions):
     with open(path / "report.txt", "w") as f:
         f.write("-------------- {} - {} --------------\n".format(software, template))
         f.write("HC vs PD mannwhitneyu on standard deviation of framewise displacement for all subjects  stat:{:.3f} p:{:.3f}\n".format(t, p))
@@ -125,6 +125,7 @@ def generate_report(path, software, template, t, p, t_fine, p_fine, all_mad_fine
         f.write("Number of passed QC subjects with higher than 1 mm Mean Absolute Difference: {}\n".format(np.sum(all_mad_fine >= 1.0)))
         f.write("Number of passed QC subjects with higher than 0.2 mm Mean Absolute Difference: {}\n".format(np.sum(all_mad_fine >= 0.2)))
         f.write("\n")
+        f.write(f"Normality test {p_shapiro} \n")
         for key, value in predictions.items():
             f.write(f"Predictions using {key}:\n")
             f.write(f"{value}\n")
@@ -225,7 +226,7 @@ if __name__ == "__main__":
 
     MAD_results["all_mad_failed"] = concatenate_cohorts(MAD_results["mad_failed_PD"], MAD_results["mad_failed_HC"])
     MAD_results["all_mad_fine"] = concatenate_cohorts(MAD_results["mad_fine_PD"], MAD_results["mad_fine_HC"])
-
+    MAD_results["all_mad"] = concatenate_cohorts(MAD_results["all_mad_fine"], MAD_results["all_mad_failed"])
     # "mad_all_PD": metrics_utils.mean_absolute_difference(FD_mca_results[result_all_PD, FD_mca_results[result_all_ieee_PD),
     # "mad_all_HC": metrics_utils.mean_absolute_difference(FD_mca_results[result_all_HC, FD_mca_results[result_all_ieee_HC)}
 
@@ -381,8 +382,8 @@ if __name__ == "__main__":
 
     from scipy.stats import shapiro
 
-    stat, p = shapiro(np.std(FD_mca_results["FD_all_fine"], axis=1))
-    print("Normality test", p)
+    stat, p_shapiro = shapiro(np.std(FD_mca_results["FD_all_fine"], axis=1))
+    print("Normality test", p_shapiro)
 
     # t test on standard deviation of cohorts to test if varibility of healthy cohort is different from parkinsonian paitents
     # since even the log data is not normal t-test is not reliable here.
@@ -425,7 +426,7 @@ if __name__ == "__main__":
 
     probs_fine = kde.score_samples(std_fine.reshape(-1, 1))
     threshold = np.percentile(probs_fine, 5)
-    probabilities = kde.score_samples(std_failed.reshape(-1, 1))
+    probabilities = np.exp(kde.score_samples(std_failed.reshape(-1, 1)))
     prediction_kde = [-1 if p < threshold else 1 for p in probabilities]
 
     from sklearn.ensemble import IsolationForest
@@ -457,6 +458,7 @@ if __name__ == "__main__":
         p,
         stat_fine,
         p_fine,
+        p_shapiro,
         MAD_results["all_mad_fine"],
         MAD_results["all_mad_failed"],
         IDs["IDs_failed"],
@@ -510,7 +512,10 @@ if __name__ == "__main__":
 
     FD_all = np.concatenate([FD_mca_results["FD_all_fine"], FD_mca_results["FD_all_failed"]], axis=0)
     FD_all_std = np.std(FD_all, axis=1)
-    # {"Participant_ID": IDs["IDs_all"], f"FD_std_{software}_{template}": FD_all_std}
-    df = pd.DataFrame({"Participant_ID": IDs["IDs_all"], f"FD_std_{software}_{template}": FD_all_std})
+
+    FD_SD_name = f"FD_std_{software}_{template}_{cost_function}" if cost_function else f"FD_std_{software}_{template}"
+    MAD_name = f"MAD_{software}_{template}_{cost_function}" if cost_function else f"MAD_{software}_{template}"
+    df = pd.DataFrame({"Participant_ID": IDs["IDs_all"], FD_SD_name: FD_all_std, MAD_name: MAD_results["all_mad"]})
     df[f"QC_status_{software}_{template}"] = ["fine" if id in IDs["IDs_fine"] else "failed" for id in IDs["IDs_all"]]
-    df["cohort"] = ["PD" if id in mat_dic_fine_PD.keys() else "HC" for id in mat_dic_fine_HC.keys()]
+    df["cohort"] = ["HC" if id in mat_dic_HC.keys() else "PD" for id in IDs["IDs_all"]]
+    df.to_csv(path / "FD_MAD.csv", index=False)
