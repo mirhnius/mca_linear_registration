@@ -228,6 +228,24 @@ configurations_cost = {
             }
         }
     },
+
+    "corratio": {
+        FLIRT: {
+            MNI2009cAsym: {
+                "failed_subjects_HC": [
+                    "sub-116230",
+                    "sub-3620",
+                ],
+                "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
+                "PD_list": PD_list_path,
+                "HC_list": HC_list_path,
+                "path_PD": PD_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
+                "path_HC": HC_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
+                "pattern_PD": "_ses-BL",
+                "pattern_HC": "_ses-BL",
+            }    
+        },
+    },
 }
 
 verrou_configuration = {
