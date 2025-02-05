@@ -8,8 +8,15 @@ from copy import deepcopy
 from fsl.transform import affine
 
 from lnrgst_mca import metrics_utils
-from lnrgst_mca.plot_utils import plotter  # , hist_plotter
-from config import get_configurations, FD_mean_bin_sizes, FD_sd_bin_sizes  # , FD_SD_x_lim
+from lnrgst_mca.plot_utils import plotter, swarm_QC  # , hist_plotter
+from config import (
+    get_configurations,
+    FD_mean_bin_sizes,
+    FD_sd_bin_sizes,
+    short_template_names,
+    failed_palette_colors,
+    palette_colors,
+)  # , FD_SD_x_lim
 
 
 def largest_indces(array, dict_, n=4):
@@ -362,12 +369,40 @@ if __name__ == "__main__":
     # )
 
     # hist_plotter(
-    #     datasets=[np.log(np.std(FD_mca_results["FD_all_fine"], axis=1)), np.log(np.std(FD_mca_results["FD_all_failed"], axis=1))],
-    #     title=f"log SD of FD: {software} - {template}",
+    #     datasets=[np.log10(np.mean(FD_mca_results["FD_all_fine"], axis=1)), np.log10(np.mean(FD_mca_results["FD_all_failed"], axis=1))],
+    #     title=f"log10 Mean FD Per Subject: {software} - {short_template_names[template]}",
     #     path=diagram_path,
-    #     labels=["Passed", "Failed"],
-    #     xlabel="log(value) (mm)",
+    #     bins=FD_mean_bin_sizes[software][template],
+    #     labels=["Passed", "failed"],
+    #     xlabel="Value(log10) (mm)",
+    #     txt=False
     # )
+
+    # hist_plotter(
+    #     datasets=[np.log10(np.std(FD_mca_results["FD_all_fine"], axis=1)), np.log10(np.std(FD_mca_results["FD_all_failed"], axis=1))],
+    #     title=f"log10 SD of FD Per Subject: {software} - {short_template_names[template]}",
+    #     path=diagram_path,
+    #     bins=FD_sd_bin_sizes[software][template],
+    #     labels=["Passed", "Failed"],
+    #     xlabel="Value(log10) (mm)",
+    #     txt=False
+    # )
+
+    # plotter(np.log(np.mean(FD_mca_results["FD_PD_fine"], axis=1))
+    # , np.log(np.mean(FD_mca_results["FD_HC_fine"], axis=1)),
+    # title=f"Mean of FD Per Subject {software} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="Value(log10) (mm)")
+    # plotter(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
+    #  np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
+    #  title=f"SD of FD Per Subject {software} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="Value(log10) (mm)")
+    swarm_QC(
+        np.std(FD_mca_results["FD_PD_fine"], axis=1),
+        np.std(FD_mca_results["FD_all_failed"], axis=1),
+        software,
+        short_template_names[template],
+        palette_colors[software][template],
+        failed_palette_colors[software][template],
+        path=diagram_path,
+    )
 
     # saving
     path = diagram_path / "reports"
