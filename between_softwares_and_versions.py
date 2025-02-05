@@ -1,12 +1,13 @@
 import numpy as np
 import copy
-from lnrgst_mca.plot_utils import hist_plotter
+from lnrgst_mca.plot_utils import hist_plotter, plotter
 from pathlib import Path
 
 from itertools import combinations
 from scipy import stats
 
 from lnrgst_mca.constants import ANTS, FLIRT, SPM
+from config import palette_colors
 
 MNI2009cAsym = "MNI152NLin2009cAsym_res-01"
 MNI2009cSym = "MNI152NLin2009cSym_res-1"
@@ -81,26 +82,60 @@ def same_template_plots(templates, data, path, coordinates=None, std_bins=None, 
         )
 
 
-def same_software_plots(templates, data, path, labels=None, std_bins=None, mean_bins=None, log=False, **kawrgs):
+# def same_software_plots(templates, data, path, labels=None, std_bins=None, mean_bins=None, log=False, **kawrgs):
+# if labels is None:
+#     labels = templates
+
+# for software in data.keys():
+#     if log:
+#         same_software_data_mean = [np.log10(np.mean(data[software][template], axis=1)) for template in templates]
+#         same_software_data_std = [np.log10(np.std(data[software][template], axis=1)) for template in templates]
+#     else:
+#         same_software_data_mean = [np.mean(data[software][template], axis=1) for template in templates]
+#         same_software_data_std = [np.std(data[software][template], axis=1) for template in templates]
+
+#     m_b = mean_bins[software] if mean_bins else None
+#     s_b = std_bins[software] if std_bins else None
+#     hist_plotter(
+#         datasets=same_software_data_mean, title=f"Mean FD: different templates - {software}", path=path, labels=labels, bins=m_b, **kawrgs
+#     )
+
+#     hist_plotter(
+#         datasets=same_software_data_std, title=f"SD of FD: different templates - {software}", path=path, labels=labels, bins=s_b, **kawrgs
+#     )
+
+
+def same_software_plots(templates, data, path, labels=None):
     if labels is None:
         labels = templates
 
     for software in data.keys():
-        if log:
-            same_software_data_mean = [np.log10(np.mean(data[software][template], axis=1)) for template in templates]
-            same_software_data_std = [np.log10(np.std(data[software][template], axis=1)) for template in templates]
-        else:
-            same_software_data_mean = [np.mean(data[software][template], axis=1) for template in templates]
-            same_software_data_std = [np.std(data[software][template], axis=1) for template in templates]
 
-        m_b = mean_bins[software] if mean_bins else None
-        s_b = std_bins[software] if std_bins else None
-        hist_plotter(
-            datasets=same_software_data_mean, title=f"Mean FD: different templates - {software}", path=path, labels=labels, bins=m_b, **kawrgs
+        same_software_data_mean = [np.log10(np.mean(data[software][template], axis=1)) for template in templates]
+        same_software_data_std = [np.log10(np.std(data[software][template], axis=1)) for template in templates]
+        print(type(same_software_data_mean))
+        print(same_software_data_mean)
+
+        plotter(
+            same_software_data_mean[0],
+            same_software_data_mean[1],
+            title=f"Mean FD: different templates - {software}",
+            path=path,
+            labels=labels,
+            ylable="log10(value)(mm)",
+            adjust=True,
+            palette=[palette_colors[software][templates[0]], palette_colors[software][templates[1]]],
         )
 
-        hist_plotter(
-            datasets=same_software_data_std, title=f"SD of FD: different templates - {software}", path=path, labels=labels, bins=s_b, **kawrgs
+        plotter(
+            same_software_data_std[0],
+            same_software_data_std[1],
+            title=f"Standard Deviation of FD: Template Comparison - {software}",
+            path=path,
+            labels=labels,
+            ylable="log10(value) (mm)",
+            adjust=True,
+            palette=[palette_colors[software][templates[0]], palette_colors[software][templates[1]]],
         )
 
 
@@ -259,126 +294,126 @@ if __name__ == "__main__":
     # )
 
     same_software_plots(
-        ["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
-        data,
-        Path("./outputs_plots/between_templates"),
+        templates=["MNI152NLin2009cAsym_res-01", "MNI152NLin2009cSym_res-1"],
+        data=data,
+        path=Path("./outputs_plots/between_templates"),
         labels=["Asym", "Sym"],
-        coordinates=[80, 10],
-        log=True,
-        xlabel="log10(Value) (mm)",
+        # coordinates=[80, 10],
+        # log=False,
+        # xlabel="log10(Value) (mm)",
     )
 
-    def func_fd_passed(s, t):
-        return "FD_fine_all.txt"
+    # def func_fd_passed(s, t):
+    #     return "FD_fine_all.txt"
 
-    data = read_all_versions(parent_path, softwares, templates, [func_fd_passed], dtype=float)
+    # data = read_all_versions(parent_path, softwares, templates, [func_fd_passed], dtype=float)
 
-    def func_fd_passed_IDs(s, t):
-        return "IDs_fine_all.txt"
+    # def func_fd_passed_IDs(s, t):
+    #     return "IDs_fine_all.txt"
 
-    fine_IDs = read_all_versions(parent_path, softwares, templates, [func_fd_passed_IDs], str)
+    # fine_IDs = read_all_versions(parent_path, softwares, templates, [func_fd_passed_IDs], str)
 
-    data_for_software_comparison = remove_failed_ids_by_template(data, parent_path, fine_IDs, templates, softwares)
-    same_template_results = perform_t_tests_same_templates(data_for_software_comparison, templates, softwares)
-    print_t_test_results_for_same_template(same_template_results)
+    # data_for_software_comparison = remove_failed_ids_by_template(data, parent_path, fine_IDs, templates, softwares)
+    # same_template_results = perform_t_tests_same_templates(data_for_software_comparison, templates, softwares)
+    # print_t_test_results_for_same_template(same_template_results)
 
-    data_for_template_comparison = remove_failed_ids_by_software(data, parent_path, fine_IDs)
-    same_software_results = perform_t_tests_same_software(data_for_template_comparison, templates, softwares)
-    print_t_test_results_for_same_software(same_software_results)
+    # data_for_template_comparison = remove_failed_ids_by_software(data, parent_path, fine_IDs)
+    # same_software_results = perform_t_tests_same_software(data_for_template_comparison, templates, softwares)
+    # print_t_test_results_for_same_software(same_software_results)
 
-    def func_fd_all(s, t):
-        return "FD_all.txt"
+    # def func_fd_all(s, t):
+    #     return "FD_all.txt"
 
-    data = read_all_versions(parent_path, softwares, templates, [func_fd_all], dtype=float)
-    same_template_results = perform_t_tests_same_templates(data, templates, softwares)
-    print_t_test_results_for_same_template(same_template_results)
-    same_software_results = perform_t_tests_same_software(data, templates, softwares)
-    print_t_test_results_for_same_software(same_software_results)
+    # data = read_all_versions(parent_path, softwares, templates, [func_fd_all], dtype=float)
+    # same_template_results = perform_t_tests_same_templates(data, templates, softwares)
+    # print_t_test_results_for_same_template(same_template_results)
+    # same_software_results = perform_t_tests_same_software(data, templates, softwares)
+    # print_t_test_results_for_same_software(same_software_results)
 
-    def func_fd_passed(s, t):
-        return "FD_fine_all.txt"
+    # def func_fd_passed(s, t):
+    #     return "FD_fine_all.txt"
 
-    data = read_all_versions(parent_path, softwares, templates, [func_fd_passed], dtype=float)
+    # data = read_all_versions(parent_path, softwares, templates, [func_fd_passed], dtype=float)
 
-    def func_fd_passed_IDs(s, t):
-        return "IDs_fine_all.txt"
+    # def func_fd_passed_IDs(s, t):
+    #     return "IDs_fine_all.txt"
 
-    fine_IDs = read_all_versions(parent_path, softwares, templates, [func_fd_passed_IDs], str)
+    # fine_IDs = read_all_versions(parent_path, softwares, templates, [func_fd_passed_IDs], str)
 
-    data_for_software_comparison = remove_failed_ids_by_template(data, parent_path, fine_IDs, templates, softwares)
-    same_template_results = perform_t_tests_same_templates(data_for_software_comparison, templates, softwares)
-    print_t_test_results_for_same_template(same_template_results)
+    # data_for_software_comparison = remove_failed_ids_by_template(data, parent_path, fine_IDs, templates, softwares)
+    # same_template_results = perform_t_tests_same_templates(data_for_software_comparison, templates, softwares)
+    # print_t_test_results_for_same_template(same_template_results)
 
-    data = data_for_software_comparison
-    sd_data = {software: {template: np.std(array, axis=1) for template, array in templates.items()} for software, templates in data.items()}
+    # data = data_for_software_comparison
+    # sd_data = {software: {template: np.std(array, axis=1) for template, array in templates.items()} for software, templates in data.items()}
 
-    from scipy.stats import f_oneway  # shapiro, levene,
+    # from scipy.stats import f_oneway  # shapiro, levene,
 
-    anova_stat, anova_p = f_oneway(
-        sd_data["ants"]["MNI152NLin2009cAsym_res-01"], sd_data["flirt"]["MNI152NLin2009cAsym_res-01"], sd_data["spm"]["MNI152NLin2009cAsym_res-01"]
-    )
-    anova_stat, anova_p = f_oneway(
-        sd_data["ants"]["MNI152NLin2009cSym_res-1"], sd_data["flirt"]["MNI152NLin2009cSym_res-1"], sd_data["spm"]["MNI152NLin2009cSym_res-1"]
-    )
+    # anova_stat, anova_p = f_oneway(
+    #     sd_data["ants"]["MNI152NLin2009cAsym_res-01"], sd_data["flirt"]["MNI152NLin2009cAsym_res-01"], sd_data["spm"]["MNI152NLin2009cAsym_res-01"]
+    # )
+    # anova_stat, anova_p = f_oneway(
+    #     sd_data["ants"]["MNI152NLin2009cSym_res-1"], sd_data["flirt"]["MNI152NLin2009cSym_res-1"], sd_data["spm"]["MNI152NLin2009cSym_res-1"]
+    # )
 
-    # from statsmodels.stats.anova import anova_lm
-    import pandas as pd
+    # # from statsmodels.stats.anova import anova_lm
+    # import pandas as pd
 
-    # from statsmodels.formula.api import ols
+    # # from statsmodels.formula.api import ols
 
-    # sd_data = [
-    # {"software": software, "template": template, "sd": np.std(array, axis=1)}
-    # for software, templates in data.items()
-    # for template, array in templates.items()
+    # # sd_data = [
+    # # {"software": software, "template": template, "sd": np.std(array, axis=1)}
+    # # for software, templates in data.items()
+    # # for template, array in templates.items()
 
-    # ]
-    # Step 1: Flatten the nested dictionary
-    flattened_data = []
-    subject_id = 1  # Unique identifier for each subject
-    for software, templates in sd_data.items():
-        for template, sd_array in templates.items():
-            subject_id = 1
-            for sd in sd_array:
-                flattened_data.append({"subject": subject_id, "software": software, "template": template, "sd": sd})
-                subject_id += 1  # Increment subject ID for each SD value
+    # # ]
+    # # Step 1: Flatten the nested dictionary
+    # flattened_data = []
+    # subject_id = 1  # Unique identifier for each subject
+    # for software, templates in sd_data.items():
+    #     for template, sd_array in templates.items():
+    #         subject_id = 1
+    #         for sd in sd_array:
+    #             flattened_data.append({"subject": subject_id, "software": software, "template": template, "sd": sd})
+    #             subject_id += 1  # Increment subject ID for each SD value
 
-    # Step 2: Create a DataFrame
-    df = pd.DataFrame(flattened_data)
-    # df = pd.DataFrame(sd_data)
+    # # Step 2: Create a DataFrame
+    # df = pd.DataFrame(flattened_data)
+    # # df = pd.DataFrame(sd_data)
 
-    # Step 2: Perform two-way ANOVA
-    # Use `ols` to fit the model: "sd ~ C(software) + C(template) + C(software):C(template)"
-    # model = ols('sd ~ C(software) + C(template) + C(software):C(template)', data=df).fit()
+    # # Step 2: Perform two-way ANOVA
+    # # Use `ols` to fit the model: "sd ~ C(software) + C(template) + C(software):C(template)"
+    # # model = ols('sd ~ C(software) + C(template) + C(software):C(template)', data=df).fit()
 
-    # # Perform ANOVA
-    # anova_results = anova_lm(model)
+    # # # Perform ANOVA
+    # # anova_results = anova_lm(model)
 
-    import pingouin as pg
+    # import pingouin as pg
 
-    aov = pg.rm_anova(dv="sd", within=["software", "template"], subject="subject", data=df, detailed=True)
+    # aov = pg.rm_anova(dv="sd", within=["software", "template"], subject="subject", data=df, detailed=True)
 
-    # Display the results
-    print(aov)
-    aov.to_csv("rm_anova_results.csv", index=False)
+    # # Display the results
+    # print(aov)
+    # aov.to_csv("rm_anova_results.csv", index=False)
 
-    # from scipy.stats import kruskal  # for different subjects!!
+    # # from scipy.stats import kruskal  # for different subjects!!
 
-    # print(kruskal(sd_data['ants']['MNI152NLin2009cAsym_res-01'],
-    # sd_data['flirt']['MNI152NLin2009cAsym_res-01'], sd_data['spm']['MNI152NLin2009cAsym_res-01']))
-    # print(kruskal(sd_data['ants']['MNI152NLin2009cSym_res-1'],
-    #  sd_data['flirt']['MNI152NLin2009cSym_res-1'], sd_data['spm']['MNI152NLin2009cSym_res-1']))
+    # # print(kruskal(sd_data['ants']['MNI152NLin2009cAsym_res-01'],
+    # # sd_data['flirt']['MNI152NLin2009cAsym_res-01'], sd_data['spm']['MNI152NLin2009cAsym_res-01']))
+    # # print(kruskal(sd_data['ants']['MNI152NLin2009cSym_res-1'],
+    # #  sd_data['flirt']['MNI152NLin2009cSym_res-1'], sd_data['spm']['MNI152NLin2009cSym_res-1']))
 
-    from scipy.stats import friedmanchisquare
+    # from scipy.stats import friedmanchisquare
 
-    print(
-        friedmanchisquare(
-            sd_data["ants"]["MNI152NLin2009cAsym_res-01"],
-            sd_data["flirt"]["MNI152NLin2009cAsym_res-01"],
-            sd_data["spm"]["MNI152NLin2009cAsym_res-01"],
-        )
-    )
-    print(
-        friedmanchisquare(
-            sd_data["ants"]["MNI152NLin2009cSym_res-1"], sd_data["flirt"]["MNI152NLin2009cSym_res-1"], sd_data["spm"]["MNI152NLin2009cSym_res-1"]
-        )
-    )
+    # print(
+    #     friedmanchisquare(
+    #         sd_data["ants"]["MNI152NLin2009cAsym_res-01"],
+    #         sd_data["flirt"]["MNI152NLin2009cAsym_res-01"],
+    #         sd_data["spm"]["MNI152NLin2009cAsym_res-01"],
+    #     )
+    # )
+    # print(
+    #     friedmanchisquare(
+    #         sd_data["ants"]["MNI152NLin2009cSym_res-1"], sd_data["flirt"]["MNI152NLin2009cSym_res-1"], sd_data["spm"]["MNI152NLin2009cSym_res-1"]
+    #     )
+    # )
