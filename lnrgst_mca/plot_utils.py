@@ -18,7 +18,7 @@ def create_directory(path):
         path.mkdir(parents=True, exist_ok=True)
 
 
-def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, path=None, ylable=None):
+def plotter(data_1, data_2, title, palette=["orange", "blue"], axis_labels=None, labels=None, ylim=None, path=None, ylable=None, adjust=True):
 
     if labels is None:
         labels = ["PD", "HC"]
@@ -32,6 +32,7 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
     if axis_labels is None:
         axis_labels = ["Group"] * dims
 
+    plt.figure()
     for i in range(dims):
         plt.subplot(1, dims, i + 1)
 
@@ -44,7 +45,7 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
         df = pd.concat([df_1, df_2])
 
         # Create the swarmplot
-        sns.swarmplot(x=axis_labels[i], y="Value", data=df, palette=["orange", "blue"])
+        sns.swarmplot(x=axis_labels[i], y="Value", data=df, palette=palette, size=4)
         sns.boxplot(x=axis_labels[i], y="Value", data=df, color="white")
         if i == 1 or (i == 0 and dims == 1):
             plt.title(title)
@@ -57,16 +58,32 @@ def plotter(data_1, data_2, title, axis_labels=None, labels=None, ylim=None, pat
         # else:
         #     plt.ylim([df["Value"].min() * (0.9), df["Value"].max() * (1.01)])
 
-        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
-        plt.tight_layout()
+        if adjust:
+            plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+            plt.tight_layout()
+
         if path:
             create_directory(path)
             plt.savefig(path / f"{title}.png")
 
-    plt.show()
+    # plt.show()
 
 
-def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None, coordinates=None, xlim=None):
+def swarm_QC(passed, failed, software, template, passed_plt, failed_plt, path=None):
+    plt.figure()
+    sns.swarmplot(np.log10(passed), palette=[passed_plt])
+    sns.swarmplot(np.log10(failed), palette=[failed_plt])
+    title = "Standard deviation of FD: Comparing Passed and Failed QC Subjects"
+    plt.title(title)
+    plt.ylabel("log10(value) (mm)")
+    plt.xlabel(f"{software}-{template}")
+    plt.legend(["Passed QC", "Failed QC"])
+    if path:
+        create_directory(path)
+        plt.savefig(path / f"{title}.png")
+
+
+def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None, dists=None, coordinates=None, xlim=None, txt=True):
     n = len(datasets)
     if labels is None:
         labels = [f"Software {str(i+1)}" for i in range(len(datasets))]
@@ -84,15 +101,21 @@ def hist_plotter(datasets, title, labels=None, path=None, bins=None, xlabel=None
         if data.ndim == 1:
             data = data.reshape(-1, 1)
         hist_data = plt.hist(data, alpha=0.5, bins=bins[i], label=labels[i])
-        color = hist_data[2][0].get_facecolor()
-        median = np.median(data)
-        plt.axvline(median, linestyle="dashed", color=color, linewidth=1)
-        if coordinates:
-            plt.text(coordinates[0], dists[i] + coordinates[1], f"{labels[i]}'s median: {median:.2e}", fontsize=10)
-        else:
-            plt.text(
-                median, (dists[i] + (plt.ylim()[1] / 2)), f"{labels[i]}'s median: {median:.2e}", fontsize=10, ha=direction[(i + 1) % 2], rotation=90
-            )
+        if txt:
+            color = hist_data[2][0].get_facecolor()
+            median = np.median(data)
+            plt.axvline(median, linestyle="dashed", color=color, linewidth=1)
+            if coordinates:
+                plt.text(coordinates[0], dists[i] + coordinates[1], f"{labels[i]}'s median: {median:.2e}", fontsize=10)
+            else:
+                plt.text(
+                    median,
+                    (dists[i] + (0.85 * plt.ylim()[1] / 2)),
+                    f"{labels[i]}'s median: {median:.2e}",
+                    fontsize=10,
+                    ha=direction[(i + 1) % 2],
+                    rotation=90,
+                )
         # {median:.2f}
 
     if xlim:

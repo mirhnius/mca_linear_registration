@@ -4,6 +4,7 @@ from lnrgst_mca.constants import ANTS, FLIRT, SPM
 
 MNI2009cAsym = "MNI152NLin2009cAsym_res-01"
 MNI2009cSym = "MNI152NLin2009cSym_res-1"
+short_template_names = {MNI2009cAsym: "Asym", MNI2009cSym: "Sym"}
 
 FD_SD_x_lim = {
     FLIRT: {MNI2009cAsym: None, MNI2009cSym: None},
@@ -19,8 +20,8 @@ MAD_bin_sizes = {
 
 FD_sd_bin_sizes = {
     FLIRT: {MNI2009cAsym: [10, 15], MNI2009cSym: [10, 15]},
-    ANTS: {MNI2009cAsym: [10, 1], MNI2009cSym: [10, 10]},
-    SPM: {MNI2009cAsym: [200, 10], MNI2009cSym: [15, 10]},
+    ANTS: {MNI2009cAsym: [10, 1], MNI2009cSym: [10, 1]},
+    SPM: {MNI2009cAsym: [15, 10], MNI2009cSym: [15, 10]},
 }
 
 FD_mean_bin_sizes = {
@@ -29,6 +30,25 @@ FD_mean_bin_sizes = {
     SPM: {MNI2009cAsym: [15, 15], MNI2009cSym: [15, 15]},
 }
 
+palette_colors = {
+    SPM: {MNI2009cAsym: "#dda0dd", MNI2009cSym: "#800080"},
+    ANTS: {MNI2009cAsym: "#cd5c5c", MNI2009cSym: "#8b0000"},
+    FLIRT: {MNI2009cAsym: "#90ee90", MNI2009cSym: "#008000"},
+}
+failed_palette_colors = {
+    SPM: {
+        MNI2009cAsym: "#d0dda0",  # Complementary to light purple (yellowish-green)
+        MNI2009cSym: "#808000",  # Complementary to dark purple (olive green)
+    },
+    ANTS: {
+        MNI2009cAsym: "#5ccdc5",  # Complementary to red (cyan)
+        MNI2009cSym: "#00008b",  # Complementary to dark red (navy blue)
+    },
+    FLIRT: {
+        MNI2009cAsym: "#ee9090",  # Complementary to light green (light red)
+        MNI2009cSym: "#800000",  # Complementary to dark green (maroon)
+    },
+}
 PD_list_path = Path("./PD_selected_subjects.txt")
 HC_list_path = Path("./HC_selected_subjects.txt")
 pipeline_path = Path("./pipline")
@@ -179,12 +199,8 @@ configurations_cost = {
     "mutualinfo": {
         FLIRT: {
             MNI2009cAsym: {
-                "failed_subjects_HC": [
-                    "sub-116230",
-                    "sub-3620",
-                    "sub-3853"
-                ],
-                "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
+                "failed_subjects_HC": ["sub-116230", "sub-3620", "sub-3853"],
+                "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403", "sub-40733"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
                 "path_PD": PD_path_cost / "mutualinfo" / FLIRT / MNI2009cAsym / ddof,
@@ -218,7 +234,7 @@ configurations_cost = {
                     "sub-116230",
                     "sub-3620",
                 ],
-                "failed_subjects_PD": ["sub-3709", "sub-3700"],
+                "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-40733"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
                 "path_PD": PD_path_cost / "normmi" / FLIRT / MNI2009cAsym / ddof,
@@ -228,7 +244,6 @@ configurations_cost = {
             }
         }
     },
-
     "corratio": {
         FLIRT: {
             MNI2009cAsym: {
@@ -243,7 +258,7 @@ configurations_cost = {
                 "path_HC": HC_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
-            }    
+            }
         },
     },
 }
