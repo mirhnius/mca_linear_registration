@@ -116,6 +116,14 @@ def save_array(software, results, path, fmt="%.18e"):
         np.savetxt(path / f"{software}_{key}.txt", value, fmt=fmt)
 
 
+def recall(predictions):
+
+    TP = predictions.count(-1)
+    FN = predictions.count(1)
+
+    return TP / (TP + FN) if (TP + FN) > 0 else 0
+
+
 def generate_report(path, software, template, t, p, t_fine, p_fine, p_shapiro, all_mad_fine, all_mad_failed, IDs_failed, probabilities, predictions):
     with open(path / "report.txt", "w") as f:
         f.write("-------------- {} - {} --------------\n".format(software, template))
@@ -136,6 +144,7 @@ def generate_report(path, software, template, t, p, t_fine, p_fine, p_shapiro, a
         for key, value in predictions.items():
             f.write(f"Predictions using {key}:\n")
             f.write(f"{value}\n")
+            f.write(f"recall: {recall(value)}\n")
         f.write("\n")
         f.write("------------------------------------------------------------\n")
         f.write("\n")
@@ -466,12 +475,15 @@ if __name__ == "__main__":
     probabilities = np.exp(probabilities_log)
     from sklearn.ensemble import IsolationForest
 
+    threshold_sd = np.percentile(std_fine, 95)
+    quintile = [-1 if sd > threshold_sd else 1 for sd in std_failed]
+
     # Fit Isolation Forest on passed data
     clf = IsolationForest(contamination=0.05, random_state=42)
     clf.fit(std_fine.reshape(-1, 1))
 
     # Predict anomalies for failed data (-1 = anomaly, 1 = normal)
-    predictions_iso_forest = clf.predict(std_failed.reshape(-1, 1))
+    predictions_iso_forest = clf.predict(std_failed.reshape(-1, 1)).tolist()
     print("Isolation forest prediction", predictions_iso_forest)
 
     from sklearn.svm import OneClassSVM
@@ -479,10 +491,10 @@ if __name__ == "__main__":
     clf = OneClassSVM(kernel="rbf", nu=0.05, gamma=0.1)
     clf.fit(std_fine.reshape(-1, 1))
 
-    predictions_svm = clf.predict(std_failed.reshape(-1, 1))  # -1 for anomaly, 1 for normal
+    predictions_svm = clf.predict(std_failed.reshape(-1, 1)).tolist()  # -1 for anomaly, 1 for normal
     print("SVM predictions:", predictions_svm)
 
-    predictions = {"KDE": prediction_kde, "isolation_forest": predictions_iso_forest, "svm": predictions_svm}
+    predictions = {"quintile": quintile, "KDE": prediction_kde, "isolation_forest": predictions_iso_forest, "svm": predictions_svm}
     print("kde", prediction_kde)
     np.savetxt(path / "probabilities_failed.txt", probabilities)
     generate_report(
