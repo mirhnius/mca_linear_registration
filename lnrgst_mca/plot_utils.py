@@ -69,14 +69,15 @@ def plotter(data_1, data_2, title, palette=["orange", "blue"], axis_labels=None,
     # plt.show()
 
 
-def swarm_QC(passed, failed, software, template, passed_plt, failed_plt, path=None):
+def swarm_QC(passed, failed, software, template, passed_plt, failed_plt, path=None, cost_function=None):
     plt.figure()
     sns.swarmplot(np.log10(passed), palette=[passed_plt])
     sns.swarmplot(np.log10(failed), palette=[failed_plt])
     title = "Standard deviation of FD: Comparing Passed and Failed QC Subjects"
     plt.title(title)
+    cost_function = "default" if cost_function is None else cost_function
     plt.ylabel("log10(value) (mm)")
-    plt.xlabel(f"{software}-{template}")
+    plt.xlabel(f"{software.upper()}-{template}-{cost_function}")
     plt.legend(["Passed QC", "Failed QC"])
     if path:
         create_directory(path)

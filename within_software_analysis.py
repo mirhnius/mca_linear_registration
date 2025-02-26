@@ -16,6 +16,9 @@ from config import (
     short_template_names,
     failed_palette_colors,
     palette_colors,
+    palette_colors_similarity_measures,
+    failed_palette_colors_similarity_measures,
+    cost_function_names
 )  # , FD_SD_x_lim
 
 
@@ -393,24 +396,32 @@ if __name__ == "__main__":
     #     path=diagram_path,
     #     bins=FD_sd_bin_sizes[software][template],
     #     labels=["Passed", "Failed"],
-    #     xlabel="Value(log10) (mm)",
+    #     xlabel="log10(value) (mm)",
     #     txt=False
     # )
 
     # plotter(np.log(np.mean(FD_mca_results["FD_PD_fine"], axis=1))
     # , np.log(np.mean(FD_mca_results["FD_HC_fine"], axis=1)),
     # title=f"Mean of FD Per Subject {software} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="Value(log10) (mm)")
-    # plotter(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
-    #  np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
-    #  title=f"SD of FD Per Subject {software} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="Value(log10) (mm)")
+
+    cost_function_name = None if cost_function is None else cost_function_names[cost_function]
+    
+    plotter(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
+     np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
+     title=f"SD of FD Per Subject {software.upper()} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="log10(Value) (mm)", axis_labels=[f'{cost_function_name} simliarity measure'])
+    
+    failed_palette = failed_palette_colors[software][template] if cost_function is None else failed_palette_colors_similarity_measures[software][template][cost_function]
+    palette = palette_colors[software][template] if cost_function is None else palette_colors_similarity_measures[software][template][cost_function]
+
     swarm_QC(
         np.std(FD_mca_results["FD_PD_fine"], axis=1),
         np.std(FD_mca_results["FD_all_failed"], axis=1),
         software,
         short_template_names[template],
-        palette_colors[software][template],
-        failed_palette_colors[software][template],
+        palette,
+        failed_palette,
         path=diagram_path,
+        cost_function=cost_function_name
     )
 
     # saving
@@ -560,9 +571,9 @@ if __name__ == "__main__":
     FD_all = np.concatenate([FD_mca_results["FD_all_fine"], FD_mca_results["FD_all_failed"]], axis=0)
     FD_all_std = np.std(FD_all, axis=1)
 
-    FD_SD_name = f"FD_std_{software}_{template}_{cost_function}" if cost_function else f"FD_std_{software}_{template}"
-    MAD_name = f"MAD_{software}_{template}_{cost_function}" if cost_function else f"MAD_{software}_{template}"
-    QC_status_name = f"QC_status_{software}_{template}_{cost_function}" if cost_function else f"QC_status_{software}_{template}"
+    FD_SD_name = f"FD_std_{software.upper()}_{template}_{cost_function}" if cost_function else f"FD_std_{software}_{template}"
+    MAD_name = f"MAD_{software.upper()}_{template}_{cost_function}" if cost_function else f"MAD_{software}_{template}"
+    QC_status_name = f"QC_status_{software.upper()}_{template}_{cost_function}" if cost_function else f"QC_status_{software}_{template}"
     df = pd.DataFrame({"Participant_ID": IDs["IDs_all"], FD_SD_name: FD_all_std, MAD_name: MAD_results["all_mad"]})
     df[QC_status_name] = ["fine" if id in IDs["IDs_fine"] else "failed" for id in IDs["IDs_all"]]
     df["cohort"] = ["HC" if id in mat_dic_HC.keys() else "PD" for id in IDs["IDs_all"]]
