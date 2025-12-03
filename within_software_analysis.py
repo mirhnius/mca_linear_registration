@@ -406,8 +406,8 @@ if __name__ == "__main__":
 
     cost_function_name = None if cost_function is None else cost_function_names[cost_function]
     
-    plotter(np.log(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
-     np.log(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
+    plotter(np.log10(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
+     np.log10(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
      title=f"SD of FD Per Subject {software.upper()} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="log10(Value) (mm)", axis_labels=[f'{cost_function_name} simliarity measure'])
     
     failed_palette = failed_palette_colors[software][template] if cost_function is None else failed_palette_colors_similarity_measures[software][template][cost_function]
