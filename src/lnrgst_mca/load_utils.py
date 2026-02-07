@@ -1,25 +1,87 @@
+from re import sub
 import numpy as np
 import scipy
 from pathlib import Path
+from typing import Union
 
 IEEE = "ieee"
 MCA = "mca"
 PATTERN = "*.mat"
 
 
-def create_subject_list(inputfile, outputfile):
+def _ensure_4x4(mat: np.ndarray) -> np.ndarray:
+    """ Standardize an existing matrix (3x4 or 4x4) to 4x4 shape.
+    This function expects the input to already be a 2D matrix."""
+
+
+    if mat.ndim != 2:
+        raise ValueError(f"Input matrix must be 2D, got shape {mat.shape}.")   
+        
+    if mat.shape == (3,4):
+        return np.vstack([mat, np.array([[0,0,0,1]])])
+    
+    if mat.shape == (4,4):
+        return mat
+    
+    raise ValueError(f"Invalid matrix shape {mat.shape}. Expected (3, 4) or (4, 4).")
+
+
+def is_matlab_file(filename: Union[str, Path]) -> bool:
     """
-    This function receives a text file including the subjects' list
-    and return the subjects' IDs as a text file.
+    Returns True if the file is a valid MATLAB file, False otherwise.
+    """
+    try:
+        scipy.io.whosmat(str(filename))
+        return True
+    except Exception:
+        return False
+    
 
-    Parameter:
-        inputfile: The input file's path.
-        outputfile: The output file's path.
-
-    Return:
-        None
+def load_file(filename: Union[str, Path]) -> np.ndarray:
+    """
+    Universal matrix loader.
+    1. Detects file type.
+    2. Parses sepcific format (split or reshape as needed).
+    3. Standardizes to 4x4 shape.
 
     """
+
+    path = Path(filename)
+    if not path.exists():
+        raise FileNotFoundError(f"{filename} not found.")
+    
+    try:
+        if is_matlab_file(path):
+            mat_dict = scipy.io.loadmat(str(path))
+            #safely get the first variable that is not metadata
+            key = next(k for k in mat_dict.keys() if not k.startswith("__"))
+            raw_data = np.squeeze(mat_dict[key])  # Remove singleton dimensions
+
+            #ANTS split format
+            if raw_data.size ==  12:
+                rotation = raw_data[:9].reshape(3,3)
+                translation = raw_data[9:].reshape(3,1)
+                mat = np.hstack((rotation, translation))
+            else:
+                mat = raw_data.reshape(-1, 4)  # Reshape to 2D if needed
+        else:
+            mat = np.loadtxt(str(path)).reshape(-1, 4)  # Reshape to 2D if needed    
+
+        return _ensure_4x4(mat)
+    
+    except Exception as e:
+        raise RuntimeError(f"Error loading {filename}: {e}") from e
+
+def create_subject_list(inputfile: Union[str, Path], outputfile: Union[str, Path]):
+    """
+    Write subject IDs (directory names) from a file of paths to a new file.
+
+    - inputfile: text file with one directory path per line
+    - outputfile: destination text file with one subject ID per line
+
+    """
+    inputfile = Path(inputfile)
+    outputfile = Path(outputfile)
 
     dir_names = []
     with open(inputfile, "r") as infile:
@@ -31,19 +93,8 @@ def create_subject_list(inputfile, outputfile):
         for dir in dir_names:
             outfile.write(dir)
 
-
-def is_matlab_file(filename):
-    """
-    Check if a file is a matlab file.
-    """
-    try:
-        scipy.io.whosmat(filename)
-        return True
-    except Exception:
-        return False
-
-
-def get_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: str = None, ext: str = ".mat"):
+    
+def get_paths(parent_dir: Union[str, Path], subjects_file: Union[str, Path], n_mca: int = 10, pattern: str = "", ext: str = ".mat"):
     """
     Generate IEEE and MCA paths based on a list of subjects and read from a file.
 
@@ -58,6 +109,9 @@ def get_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: s
         A directory with subject IDs as keys, ech containing paths to respective IEEE and MCA files.
     """
     # Read the subjects from the file
+    subjects_file = Path(subjects_file)
+    parent_dir = Path(parent_dir)
+
     subjects = []
     with open(subjects_file, "r") as file:
         for line in file:
@@ -66,76 +120,15 @@ def get_paths(parent_dir: Path, subjects_file: Path, n_mca: int = 10, pattern: s
     # Generate the paths
     paths = {}
     for sub in subjects:
-        ieee_path = parent_dir / IEEE / f"{sub}{pattern}{ext}"
-        mca_paths = [parent_dir / MCA / str(i) / f"{sub}{pattern}{ext}" for i in range(1, n_mca + 1)]
+        
+        filename = f"{sub}{pattern}{ext}"
+        ieee_path = parent_dir / IEEE / filename
+        mca_paths = [parent_dir / MCA / str(i) / filename for i in range(1, n_mca + 1)]
 
         paths[sub] = {IEEE: str(ieee_path), MCA: [str(p) for p in mca_paths]}
 
     return paths
 
-
-def load_matlab_file(filename: str):
-    # I need to refactore it later to support spm output
-    """
-    Load a matlab file and reshape it to affine matrix.
-
-    Parameters:
-        filename(str): The path to the file.
-
-    Return:
-        The affine matrix.
-    """
-    new_row = np.array([0, 0, 0, 1])
-    try:
-        mat = scipy.io.loadmat(filename)
-        mat = next(iter(mat.values()))
-        mat = np.column_stack([mat[:9].reshape((3, 3)), mat[9:]])
-        # mat = next(iter(mat.values())).reshape((-1, 4))
-        if mat.shape == (3, 4):  # adding the row to shape (4, 4) matrix
-            mat = np.vstack((mat, new_row))
-        return mat
-    except Exception as e:
-        raise RuntimeError(f"Error loading1 {filename}: {e}") from e
-
-
-def load_text_file(filename: str):
-    """
-    Load a text file.
-
-    Parameters:
-        filename(str): The path to the file.
-
-    Return:
-        The affine matrix.
-    """
-    new_row = np.array([0, 0, 0, 1])
-    try:
-
-        mat = np.loadtxt(filename).reshape(-1, 4)
-        if mat.shape == (3, 4):  # adding the row to shape (4, 4) matrix
-            mat = np.vstack((mat, new_row))
-        return mat
-
-    except Exception as e:
-        raise RuntimeError(f"Error loading2 {filename}: {e}") from e
-
-
-def load_file(filename: str):
-    """
-    Load a file, either matlab or text.
-
-    Parameters:
-        filename(str): The path to the file.
-
-    Return:
-        The affine matrix.
-    """
-    if not Path(filename).exists():
-        raise FileNotFoundError(f"{filename} not found.")
-
-    if is_matlab_file(filename):
-        return load_matlab_file(filename)
-    return load_text_file(filename)
 
 
 def get_matrices(paths: dict):
@@ -153,32 +146,37 @@ def get_matrices(paths: dict):
     errors = []
 
     for sub, path_info in paths.items():
+        sub_data = {}  #Temporary dictionary
+        
+        # 1. Load IEEE (Reference)
         try:
-            matrices[sub] = {IEEE: load_file(path_info[IEEE])}
-        except (FileNotFoundError, RuntimeError) as e:
-            errors.append(f"Error loading3 {path_info[IEEE]}: {e}")
-            continue
+            sub_data[IEEE] = load_file(path_info[IEEE])
+        except Exception as e:
+            # Change 4: Better error message
+            errors.append(f"Subject {sub} [IEEE Load Failed]: {e}")
+            continue 
 
+        # 2. Load MCA (Iterations)
         mca_matrices = []
         for mca_path in path_info[MCA]:
             try:
                 mca_matrices.append(load_file(mca_path))
-            except (FileNotFoundError, RuntimeError) as e:
-                errors.append(f"Error loading4 {mca_path}: {e}")
+            except Exception as e:
+                errors.append(f"Subject {sub} [MCA Iteration Failed]: {e}")
                 continue
+        
+        # 3. Finalize Subject
         if mca_matrices:
-            try:
-                matrices[sub][MCA] = np.array(mca_matrices)
-            except ValueError as e:
-                print(sub) 
-                print([arr.shape for arr in mca_matrices])
-                errors.append(f"Error loading5 {mca_path}: {e}")
-
+            sub_data[MCA] = np.array(mca_matrices)
+            matrices[sub] = sub_data 
+        else:
+            errors.append(f"Subject {sub}: No valid MCA matrices loaded.")
 
     return matrices, errors
 
 
 if __name__ == "__main__":
+    
     create_subject_list(Path("./PD_selected_paths.txt"), "./PD_selected_subjects.txt")
     create_subject_list(Path("./HC_selected_paths.txt"), "./HC_selected_subjects.txt")
     # subfile = Path().cwd() / "sub_list_test.txt"
