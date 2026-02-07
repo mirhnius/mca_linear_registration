@@ -1,8 +1,6 @@
 import numpy as np
+from fsl.transform import affine
 from itertools import product
-
-# from pathlib import Path
-# import significantdigits as sd
 from collections import Counter
 from itertools import combinations
 
@@ -28,14 +26,16 @@ def frequency_vectors(arr1, arr2):
     return vector1, vector2
 
 
-def Cosine_similarity(A, B):
-
+def cosine_similarity(A, B):
+    """Compute cosine similarity, guarding against zero-norm vectors."""
+    A = np.asarray(A)
+    B = np.asarray(B)
     dot_product = np.dot(A, B)
-
     norm_A = np.linalg.norm(A)
     norm_B = np.linalg.norm(B)
-
-    return dot_product / (norm_A * norm_B)
+    if norm_A == 0 or norm_B == 0:
+        return 0.0
+    return float(dot_product) / float(norm_A * norm_B)
 
 
 def print_metrics(groups, all_ravel):
@@ -50,108 +50,115 @@ def print_metrics(groups, all_ravel):
 
         vector1, vector2 = frequency_vectors(all_ravel[g1], all_ravel[g2])
 
-        print(f"cosine similarity: {Cosine_similarity(vector1, vector2) :4f}")
+        print(f"cosine similarity: {cosine_similarity(vector1, vector2) :4f}")
 
         print(f"jaccard similarity: {jaccard_similarity(all_ravel[g1],all_ravel[g2]) :4f}")
 
         print("*********\n")
 
 
-def framewise_displacement(translation, angles, previous_translation=np.array([0, 0, 0]), previous_angles=np.array([0, 0, 0]), r=50, mode="degree"):
+def decompose_tensor(tensor: np.ndarray) -> tuple:
+    """
+    Decompose affine matrices into (scales, translations, angles, shears)
 
-    try:
-        if mode == "degree":
-            d_rotation = (r * np.pi / 180) * np.sqrt(np.sum((angles - previous_angles) ** 2))
+    Parameters:
+        tensor: np.ndarray
+            - (N, 4, 4) 
+            - (N, M, 4, 4)
+    Returns:
+        scales: np.ndarray (N, M, 3)
+        translations: np.ndarray (N, M, 3)
+        angles: np.ndarray (N, M, 3)
+        shears: np.ndarray (N, M, 3)
 
-        elif mode == "radian":
-            d_rotation = r * np.sqrt(np.sum((angles - previous_angles) ** 2))
+    """
 
-        else:
-            raise ValueError("Invalid mode. Mode should be either 'degree' or 'radian'.")
+    if tensor.ndim == 3 and tensor.shape[1:] == (4, 4):
+        tensor = tensor[:, np.newaxis, :, :]
+    elif tensor.ndim != 4 or tensor.shape[2:] != (4, 4):
+        raise ValueError("Input tensor must be of shape (N, 4, 4) or (N, M, 4, 4)")
 
-        d_translation = np.sqrt(np.sum((translation - previous_translation) ** 2))
+    n, m, _, _ = tensor.shape
+    scales = np.zeros((n, m, 3), dtype=tensor.dtype)
+    translations = np.zeros((n, m, 3), dtype=tensor.dtype)
+    angles = np.zeros((n, m, 3), dtype=tensor.dtype)
+    shears = np.zeros((n, m, 3), dtype=tensor.dtype)
 
-        return d_rotation + d_translation
+    for i in range(n):
+        for j in range(m):
+            s, t, a, sh = affine.decompose(tensor[i, j])
+            scales[i, j] = s
+            translations[i, j] = t
+            angles[i, j] = np.degrees(a)
+            shears[i, j] = sh
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    return (scales, translations, angles, shears)
 
 
-def FD_all_subjects(translation_mca, angles_mca, translation_ieee=None, angles_ieee=None):
+def framewise_displacment_all_subjects_vectorized(
+        translation_mca: np.ndarray,
+        angles_mca: np.ndarray,
+        translation_ieee: np.ndarray = None,
+        angles_ieee: np.ndarray = None,
+        r: float = 50.0,
+        mode: str = "degree",       
+) -> np.ndarray:
+    """
+    Vectorized computation of framewise displacement for all subjects and MCA runs.
+    Computes ||∆t|| + r * ||∆θ|| for each subject and MCA run, where ∆t is the translation difference and ∆θ is the angle difference.
+    Relative to per-subject IEEE reference (if provided) or zero if not.
 
-    n, n_mca, dims = translation_mca.shape
-    FD_results = np.zeros((n, n_mca))
+    Inputs:
+        translation_mca: (N, M, 3)
+        angles_mca:      (N, M, 3)
+        translation_ieee: (N, 1, 3) or None
+        angles_ieee:      (N, 1, 3) or None
+    """
 
+    if translation_ieee is not None and translation_ieee.ndim != 3:
+        raise ValueError("translation_ieee must be a 3D array of shape (n_subjects, 1, 3) or None")
+    if angles_ieee is not None and angles_ieee.ndim != 3:
+        raise ValueError("angles_ieee must be a 3D array of shape (n_subjects, 1, 3) or None")
+    
+    n, n_mca, dims_t = translation_mca.shape
+    _, _, dims_a = angles_mca.shape
+    if dims_t != 3 or dims_a != 3:
+        raise ValueError("translation_mca and angles_mca must have last dimension of size 3 (x, y, z)")
+    
     if translation_ieee is None:
-        translation_ieee = np.zeros((n, dims))
+        translation_ieee = np.zeros((n, 1, 3), dtype=translation_mca.dtype)
 
     if angles_ieee is None:
-        angles_ieee = np.zeros((n, dims))
+        angles_ieee = np.zeros((n, 1, 3), dtype=angles_mca.dtype)
 
-    for i, j in product(range(n), range(n_mca)):
-        FD_results[i, j] = framewise_displacement(translation_mca[i, j], angles_mca[i, j], translation_ieee[i], angles_ieee[i])
+    d_translation = np.linalg.norm(translation_mca - translation_ieee, axis=2)
+    d_angles = np.linalg.norm(angles_mca - angles_ieee, axis=2)
 
-    return FD_results
+    if mode == "degree":
+        d_rotation = (r * np.pi / 180) * d_angles
+    elif mode == "radian":
+        d_rotation = r * d_angles
+    else:
+        raise ValueError("Invalid mode. Mode should be either 'degree' or 'radian'.")
+    
+    return d_translation + d_rotation
+    
 
 
 def mean_absolute_difference(FD_mca, FD_ieee):
 
+    """Calculate Mean Absolute Difference (MAD) between MCA and IEEE framewise displacement across all subjects and runs.
+    
+    Inputs:
+        FD_mca: (N_subjects, N_MCA) array of framewise displacement for MCA runs
+        FD_ieee: (N_subjects, 1)  or (N_subjects,) array of framewise displacement for IEEE reference.
+    
+    Returns:
+        mad: (N_subjects,) array of mean absolute differences for each subject
+    """
+
+    if FD_ieee.ndim == 1:
+        FD_ieee = FD_ieee[:, np.newaxis]
+    
+    
     return np.mean(np.abs(FD_mca - FD_ieee), axis=1)
-
-
-def random_point_on_sphere_surface(radius, center):
-    np.random.seed(0)  # Set the seed for the random number generator
-
-    x, y, z = np.random.uniform(-1, 1, 3)
-
-    norm = np.sqrt(x**2 + y**2 + z**2)
-    x_norm, y_norm, z_norm = x / norm, y / norm, z / norm
-
-    x_surface = radius * x_norm + center[0]
-    y_surface = radius * y_norm + center[1]
-    z_surface = radius * z_norm + center[2]
-
-    return np.array((x_surface, y_surface, z_surface, 1))
-
-
-def improved_FD(transformation, n=50):
-
-    for i in range(n):
-        distances = np.zeros((n,))
-        reversed_transformation = np.linalg.inv(transformation)
-        p = random_point_on_sphere_surface(50, (0, 0, 0))
-        intial_p = np.dot(reversed_transformation, p)
-        distances[i] = np.linalg.norm(p - intial_p)
-
-    return np.mean(distances)
-
-
-def FD_all_subjects_improved(transformations, n_random=50):
-    n, n_mca, _, _ = transformations.shape
-    FD_results = np.zeros((n, n_mca))
-
-    for i, j in product(range(n), range(n_mca)):
-        FD_results[i, j] = improved_FD(transformations[i, j], n_random)
-
-    return FD_results
-
-
-# def improved_fd(translations, angles, shears, scales):
-#     d_rotation = 2* np.sqrt(np.sum((angles) ** 2))
-#     d_translation = np.sqrt(np.sum((translations)**2))
-#     d_shears = np.sqrt(np.sum((shears)**2)) * 400
-#     d_scales = np.sqrt(np.sum((scales)**2)) * 20
-#     print("translations", d_rotation)
-#     print("angles", d_translation)
-#     print("shears", d_shears)
-#     print("scales", d_scales)
-#     return d_shears + d_scales + d_translation + d_rotation
-
-
-# def FD_all_subjects_improved(translations, angles, shears, scales):
-#     n, n_mca, _ = translations.shape
-#     FD_results = np.zeros((n, n_mca))
-
-#     for i,j in product(range(n), range(n_mca)):
-#         FD_results[i,j] = improved_fd(translations[i,j], angles[i,j], shears[i,j], scales[i,j])
-#     return FD_results
