@@ -175,8 +175,29 @@ def get_matrices(paths: dict):
     return matrices, errors
 
 
-if __name__ == "__main__":
+def get_matrices_tensor(paths: dict):
+    """
+    Loads matrices into 4D Tensors for vectorized analysis.
+    Returns: mca_tensor, ieee_tensor, subject_ids, errors
+    """
+    matrices, errors = get_matrices(paths)
     
+    subject_ids = sorted(matrices.keys())
+    mca_list = []
+    ieee_list = []
+    
+    for sub in subject_ids:
+        mca_list.append(matrices[sub][MCA])
+        ieee_list.append(matrices[sub][IEEE])
+        
+    if not mca_list:
+        return np.array([]), np.array([]), [], errors
+        
+    return np.array(mca_list), np.array(ieee_list), subject_ids, errors
+
+
+if __name__ == "__main__":
+
     create_subject_list(Path("./PD_selected_paths.txt"), "./PD_selected_subjects.txt")
     create_subject_list(Path("./HC_selected_paths.txt"), "./HC_selected_subjects.txt")
     # subfile = Path().cwd() / "sub_list_test.txt"
