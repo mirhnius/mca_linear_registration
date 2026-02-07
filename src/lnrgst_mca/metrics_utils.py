@@ -5,6 +5,14 @@ from collections import Counter
 from itertools import combinations
 
 
+# ML Imports (for Anomaly Detection)
+from sklearn.neighbors import KernelDensity
+from sklearn.ensemble import IsolationForest
+from sklearn.svm import OneClassSVM
+from scipy.stats import shapiro, mannwhitneyu
+#---------------------------------------------------------------------------------------------------------------------
+# 1. SIMILARITY METRICS
+#---------------------------------------------------------------------------------------------------------------------
 def jaccard_similarity(arr1, arr2):
 
     set1 = set(arr1)
@@ -57,6 +65,9 @@ def print_metrics(groups, all_ravel):
         print("*********\n")
 
 
+#---------------------------------------------------------------------------------------------------------------------
+# 2. GEOMETRIC DECOMPOSITION 
+#---------------------------------------------------------------------------------------------------------------------
 def decompose_tensor(tensor: np.ndarray) -> tuple:
     """
     Decompose affine matrices into (scales, translations, angles, shears)
@@ -95,6 +106,9 @@ def decompose_tensor(tensor: np.ndarray) -> tuple:
     return (scales, translations, angles, shears)
 
 
+#---------------------------------------------------------------------------------------------------------------------
+# 3. DISPLACEMENT METRICS (FD & MAD)
+#---------------------------------------------------------------------------------------------------------------------
 def framewise_displacment_all_subjects_vectorized(
         translation_mca: np.ndarray,
         angles_mca: np.ndarray,
@@ -144,7 +158,6 @@ def framewise_displacment_all_subjects_vectorized(
     return d_translation + d_rotation
     
 
-
 def mean_absolute_difference(FD_mca, FD_ieee):
 
     """Calculate Mean Absolute Difference (MAD) between MCA and IEEE framewise displacement across all subjects and runs.
@@ -162,3 +175,63 @@ def mean_absolute_difference(FD_mca, FD_ieee):
     
     
     return np.mean(np.abs(FD_mca - FD_ieee), axis=1)
+
+
+#---------------------------------------------------------------------------------------------------------------------
+# 4. STATISTICAL TESTS
+#---------------------------------------------------------------------------------------------------------------------
+def test_normality(data: np.ndarray) -> float:
+    """Simple wrapper for Shapiro-Wilk test."""
+    stat, p_value = shapiro(data)
+    return p_value
+
+def compare_groups(group1: np.ndarray, group2: np.ndarray) -> tuple:
+    """Simple wrapper for Mann-Whitney U test."""
+    stat, p_value = mannwhitneyu(group1, group2, alternative="two-sided")
+    return stat, p_value
+
+
+#---------------------------------------------------------------------------------------------------------------------
+# 5. OUTLIER / ANOMALY DETECTION
+#---------------------------------------------------------------------------------------------------------------------
+def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, bandwidth=0.01, percentile=5):
+    """
+    Fits KDE on train_data (Normal/Passed) and detects outliers in test_data (Failed).
+    Returns: predictions (-1=outlier, 1=normal), probabilities
+    """
+    train_data = train_data.reshape(-1, 1)
+    test_data = test_data.reshape(-1, 1)
+
+    kde = KernelDensity(kernel="exponential", bandwidth=bandwidth).fit(train_data)
+    
+    # Get threshold from training data
+    log_probs_train = kde.score_samples(train_data)
+    threshold = np.percentile(log_probs_train, percentile)
+    
+    # Predict on test data
+    log_probs_test = kde.score_samples(test_data)
+    predictions = [-1 if p < threshold else 1 for p in log_probs_test]
+    
+    return predictions, np.exp(log_probs_test)
+
+
+def detect_outliers_isolation_forest(train_data: np.ndarray, test_data: np.ndarray, contamination=0.05):
+    """Fits Isolation Forest on train_data and predicts on test_data."""
+    clf = IsolationForest(contamination=contamination, random_state=42)
+    clf.fit(train_data.reshape(-1, 1))
+    return clf.predict(test_data.reshape(-1, 1)).tolist()
+
+
+def detect_outliers_svm(train_data: np.ndarray, test_data: np.ndarray, nu=0.05, gamma=0.1):
+    """Fits OneClassSVM on train_data and predicts on test_data."""
+    clf = OneClassSVM(kernel="rbf", nu=nu, gamma=gamma)
+    clf.fit(train_data.reshape(-1, 1))
+    return clf.predict(test_data.reshape(-1, 1)).tolist()
+
+
+def calculate_recall(predictions: list) -> float:
+    """Calculates recall for outliers (Target: -1)."""
+    tp = predictions.count(-1)
+    fn = predictions.count(1)
+    return tp / (tp + fn) if (tp + fn) > 0 else 0.0
+
