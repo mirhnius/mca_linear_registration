@@ -8,7 +8,29 @@ IEEE = "ieee"
 MCA = "mca"
 PATTERN = "*.mat"
 
+def create_subject_list(inputfile: Union[str, Path], outputfile: Union[str, Path]):
+    """
+    Reads a file of raw paths and writes a clean list of subject IDs to outputfile.
+    Example:
+        Input:  /data/raw/sub-001/session-1
+        Output: sub-001
 
+    """
+    inputfile = Path(inputfile)
+    outputfile = Path(outputfile)
+
+    if not inputfile.exists():
+        raise FileNotFoundError(f"{inputfile} not found.")
+
+    with open(inputfile, "r") as infile, open(outputfile, "w") as outfile:
+        for line in infile:
+            raw_path = line.strip()
+            if not raw_path:
+                continue
+            subject_id = Path(raw_path).name
+            outfile.write(f"{subject_id}\n")
+ 
+ 
 def _ensure_4x4(mat: np.ndarray) -> np.ndarray:
     """ Standardize an existing matrix (3x4 or 4x4) to 4x4 shape.
     This function expects the input to already be a 2D matrix."""
@@ -72,28 +94,7 @@ def load_file(filename: Union[str, Path]) -> np.ndarray:
     except Exception as e:
         raise RuntimeError(f"Error loading {filename}: {e}") from e
 
-def create_subject_list(inputfile: Union[str, Path], outputfile: Union[str, Path]):
-    """
-    Write subject IDs (directory names) from a file of paths to a new file.
-
-    - inputfile: text file with one directory path per line
-    - outputfile: destination text file with one subject ID per line
-
-    """
-    inputfile = Path(inputfile)
-    outputfile = Path(outputfile)
-
-    dir_names = []
-    with open(inputfile, "r") as infile:
-        for line in infile:
-            path = Path(line.rstrip())  # removing the new line character
-            dir_names.append(path.name + "\n")
-
-    with open(outputfile, "w") as outfile:
-        for dir in dir_names:
-            outfile.write(dir)
-
-    
+   
 def get_paths(parent_dir: Union[str, Path], subjects_file: Union[str, Path], n_mca: int = 10, pattern: str = "", ext: str = ".mat"):
     """
     Generate IEEE and MCA paths based on a list of subjects and read from a file.
@@ -128,7 +129,6 @@ def get_paths(parent_dir: Union[str, Path], subjects_file: Union[str, Path], n_m
         paths[sub] = {IEEE: str(ieee_path), MCA: [str(p) for p in mca_paths]}
 
     return paths
-
 
 
 def get_matrices(paths: dict):
