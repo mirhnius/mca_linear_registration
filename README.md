@@ -7,6 +7,9 @@ The goal of this work is to investigate how floating-point numerical perturbatio
 affect the stability, reliability, and quality of commonly used **linear MRI
 registration tools**.
 
+🚧 Under Active Refactoring 🚧
+This repository is currently being refactored from research scripts into a production-ready Python package.
+
 ---
 
 ## 🧠 Background & Motivation
