@@ -1,6 +1,6 @@
 # Numerical Uncertainty in Linear MRI Registration
 
-This repository contains the code and experimental setup for the project  
+This repository contains the code and experimental setup for the project
 **“**[Numerical Uncertainty in Linear Registration: An Experimental Study](https://arxiv.org/abs/2508.00781v1)**.”**.
 
 The goal of this work is to investigate how floating-point numerical perturbations

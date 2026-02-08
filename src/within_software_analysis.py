@@ -18,7 +18,7 @@ from config import (
     palette_colors,
     palette_colors_similarity_measures,
     failed_palette_colors_similarity_measures,
-    cost_function_names
+    cost_function_names,
 )  # , FD_SD_x_lim
 
 
@@ -405,12 +405,21 @@ if __name__ == "__main__":
     # title=f"Mean of FD Per Subject {software} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="Value(log10) (mm)")
 
     cost_function_name = None if cost_function is None else cost_function_names[cost_function]
-    
-    plotter(np.log10(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
-     np.log10(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
-     title=f"SD of FD Per Subject {software.upper()} - {short_template_names[template]}: Cohort Comparison", path=diagram_path, ylable="log10(Value) (mm)", axis_labels=[f'{cost_function_name} simliarity measure'])
-    
-    failed_palette = failed_palette_colors[software][template] if cost_function is None else failed_palette_colors_similarity_measures[software][template][cost_function]
+
+    plotter(
+        np.log10(np.std(FD_mca_results["FD_PD_fine"], axis=1)),
+        np.log10(np.std(FD_mca_results["FD_HC_fine"], axis=1)),
+        title=f"SD of FD Per Subject {software.upper()} - {short_template_names[template]}: Cohort Comparison",
+        path=diagram_path,
+        ylable="log10(Value) (mm)",
+        axis_labels=[f"{cost_function_name} simliarity measure"],
+    )
+
+    failed_palette = (
+        failed_palette_colors[software][template]
+        if cost_function is None
+        else failed_palette_colors_similarity_measures[software][template][cost_function]
+    )
     palette = palette_colors[software][template] if cost_function is None else palette_colors_similarity_measures[software][template][cost_function]
 
     swarm_QC(
@@ -421,7 +430,7 @@ if __name__ == "__main__":
         palette,
         failed_palette,
         path=diagram_path,
-        cost_function=cost_function_name
+        cost_function=cost_function_name,
     )
 
     # saving

@@ -1,4 +1,3 @@
-from re import sub
 import numpy as np
 import scipy
 from pathlib import Path
@@ -7,6 +6,7 @@ from typing import Union
 IEEE = "ieee"
 MCA = "mca"
 PATTERN = "*.mat"
+
 
 def create_subject_list(inputfile: Union[str, Path], outputfile: Union[str, Path]):
     """
@@ -29,22 +29,21 @@ def create_subject_list(inputfile: Union[str, Path], outputfile: Union[str, Path
                 continue
             subject_id = Path(raw_path).name
             outfile.write(f"{subject_id}\n")
- 
- 
+
+
 def _ensure_4x4(mat: np.ndarray) -> np.ndarray:
-    """ Standardize an existing matrix (3x4 or 4x4) to 4x4 shape.
+    """Standardize an existing matrix (3x4 or 4x4) to 4x4 shape.
     This function expects the input to already be a 2D matrix."""
 
-
     if mat.ndim != 2:
-        raise ValueError(f"Input matrix must be 2D, got shape {mat.shape}.")   
-        
-    if mat.shape == (3,4):
-        return np.vstack([mat, np.array([[0,0,0,1]])])
-    
-    if mat.shape == (4,4):
+        raise ValueError(f"Input matrix must be 2D, got shape {mat.shape}.")
+
+    if mat.shape == (3, 4):
+        return np.vstack([mat, np.array([[0, 0, 0, 1]])])
+
+    if mat.shape == (4, 4):
         return mat
-    
+
     raise ValueError(f"Invalid matrix shape {mat.shape}. Expected (3, 4) or (4, 4).")
 
 
@@ -57,7 +56,7 @@ def is_matlab_file(filename: Union[str, Path]) -> bool:
         return True
     except Exception:
         return False
-    
+
 
 def load_file(filename: Union[str, Path]) -> np.ndarray:
     """
@@ -71,30 +70,30 @@ def load_file(filename: Union[str, Path]) -> np.ndarray:
     path = Path(filename)
     if not path.exists():
         raise FileNotFoundError(f"{filename} not found.")
-    
+
     try:
         if is_matlab_file(path):
             mat_dict = scipy.io.loadmat(str(path))
-            #safely get the first variable that is not metadata
+            # safely get the first variable that is not metadata
             key = next(k for k in mat_dict.keys() if not k.startswith("__"))
             raw_data = np.squeeze(mat_dict[key])  # Remove singleton dimensions
 
-            #ANTS split format
-            if raw_data.size ==  12:
-                rotation = raw_data[:9].reshape(3,3)
-                translation = raw_data[9:].reshape(3,1)
+            # ANTS split format
+            if raw_data.size == 12:
+                rotation = raw_data[:9].reshape(3, 3)
+                translation = raw_data[9:].reshape(3, 1)
                 mat = np.hstack((rotation, translation))
             else:
                 mat = raw_data.reshape(-1, 4)  # Reshape to 2D if needed
         else:
-            mat = np.loadtxt(str(path)).reshape(-1, 4)  # Reshape to 2D if needed    
+            mat = np.loadtxt(str(path)).reshape(-1, 4)  # Reshape to 2D if needed
 
         return _ensure_4x4(mat)
-    
+
     except Exception as e:
         raise RuntimeError(f"Error loading {filename}: {e}") from e
 
-   
+
 def get_paths(parent_dir: Union[str, Path], subjects_file: Union[str, Path], n_mca: int = 10, pattern: str = "", ext: str = ".mat"):
     """
     Generate IEEE and MCA paths based on a list of subjects and read from a file.
@@ -121,7 +120,7 @@ def get_paths(parent_dir: Union[str, Path], subjects_file: Union[str, Path], n_m
     # Generate the paths
     paths = {}
     for sub in subjects:
-        
+
         filename = f"{sub}{pattern}{ext}"
         ieee_path = parent_dir / IEEE / filename
         mca_paths = [parent_dir / MCA / str(i) / filename for i in range(1, n_mca + 1)]
@@ -146,15 +145,15 @@ def get_matrices(paths: dict):
     errors = []
 
     for sub, path_info in paths.items():
-        sub_data = {}  #Temporary dictionary
-        
+        sub_data = {}  # Temporary dictionary
+
         # 1. Load IEEE (Reference)
         try:
             sub_data[IEEE] = load_file(path_info[IEEE])
         except Exception as e:
             # Change 4: Better error message
             errors.append(f"Subject {sub} [IEEE Load Failed]: {e}")
-            continue 
+            continue
 
         # 2. Load MCA (Iterations)
         mca_matrices = []
@@ -164,11 +163,11 @@ def get_matrices(paths: dict):
             except Exception as e:
                 errors.append(f"Subject {sub} [MCA Iteration Failed]: {e}")
                 continue
-        
+
         # 3. Finalize Subject
         if mca_matrices:
             sub_data[MCA] = np.array(mca_matrices)
-            matrices[sub] = sub_data 
+            matrices[sub] = sub_data
         else:
             errors.append(f"Subject {sub}: No valid MCA matrices loaded.")
 
@@ -181,18 +180,18 @@ def get_matrices_tensor(paths: dict):
     Returns: mca_tensor, ieee_tensor, subject_ids, errors
     """
     matrices, errors = get_matrices(paths)
-    
+
     subject_ids = sorted(matrices.keys())
     mca_list = []
     ieee_list = []
-    
+
     for sub in subject_ids:
         mca_list.append(matrices[sub][MCA])
         ieee_list.append(matrices[sub][IEEE])
-        
+
     if not mca_list:
         return np.array([]), np.array([]), [], errors
-        
+
     return np.array(mca_list), np.array(ieee_list), subject_ids, errors
 
 

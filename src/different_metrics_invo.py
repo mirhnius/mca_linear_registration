@@ -34,18 +34,20 @@ def scan_filed_dict_short(scan_path):
 #         output_path = output_dir / method
 #         invocation_path = invocation_dir / method
 
-#         invo.FLIRT_IEEE_registration(map_, output_path, invocation_path, ref=ref, template_name="2009Asym", cost_function=method).create_invocations()
+#         invo.FLIRT_IEEE_registration(map_, output_path, invocation_path, ref=ref, template_name="2009Asym",
+#  cost_function=method).create_invocations()
 
-#         invo.FLIRT_MCA_registration(map_, output_path, invocation_path, ref=ref, template_name="2009Asym", cost_function=method).create_invocations()
+#         invo.FLIRT_MCA_registration(map_, output_path, invocation_path, ref=ref, template_name="2009Asym",
+#  cost_function=method).create_invocations()
 
 pattern = Path("") / "sub-*.nii"
-ref =  Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii")
+ref = Path("/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/tpl-MNI152NLin2009cAsym_res-01_T1w_neck_5.nii")
 for group in ["hc", "pd"]:
     in_path = Path(f"/home/niusham/projects/rrg-jbpoline/niusham/mca_linear_registration/pipline/{group}/outputs/preprocess_unzipped/")
     output_dir = Path(f"./verrou/{group}/output")
     invocation_dir = Path(f"./verrou/{group}/invocation")
     map_ = invo.create_subject_map(in_path, pattern=pattern, scanner=scan_filed_dict_short)
-  
+
     output_path = output_dir
     invocation_path = invocation_dir
 

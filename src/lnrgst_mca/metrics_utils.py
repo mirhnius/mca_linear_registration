@@ -1,6 +1,7 @@
 import numpy as np
 from fsl.transform import affine
-from itertools import product
+
+# from itertools import product
 from collections import Counter
 from itertools import combinations
 
@@ -10,9 +11,11 @@ from sklearn.neighbors import KernelDensity
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import OneClassSVM
 from scipy.stats import shapiro, mannwhitneyu
-#---------------------------------------------------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # 1. SIMILARITY METRICS
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 def jaccard_similarity(arr1, arr2):
 
     set1 = set(arr1)
@@ -58,23 +61,23 @@ def print_metrics(groups, all_ravel):
 
         vector1, vector2 = frequency_vectors(all_ravel[g1], all_ravel[g2])
 
-        print(f"cosine similarity: {cosine_similarity(vector1, vector2) :4f}")
+        print(f"cosine similarity: {cosine_similarity(vector1, vector2): 4f}")
 
-        print(f"jaccard similarity: {jaccard_similarity(all_ravel[g1],all_ravel[g2]) :4f}")
+        print(f"jaccard similarity: {jaccard_similarity(all_ravel[g1], all_ravel[g2]): 4f}")
 
         print("*********\n")
 
 
-#---------------------------------------------------------------------------------------------------------------------
-# 2. GEOMETRIC DECOMPOSITION 
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
+# 2. GEOMETRIC DECOMPOSITION
+# ---------------------------------------------------------------------------------------------------------------------
 def decompose_tensor(tensor: np.ndarray) -> tuple:
     """
     Decompose affine matrices into (scales, translations, angles, shears)
 
     Parameters:
         tensor: np.ndarray
-            - (N, 4, 4) 
+            - (N, 4, 4)
             - (N, M, 4, 4)
     Returns:
         scales: np.ndarray (N, M, 3)
@@ -106,16 +109,16 @@ def decompose_tensor(tensor: np.ndarray) -> tuple:
     return (scales, translations, angles, shears)
 
 
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # 3. DISPLACEMENT METRICS (FD & MAD)
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 def framewise_displacment_all_subjects_vectorized(
-        translation_mca: np.ndarray,
-        angles_mca: np.ndarray,
-        translation_ieee: np.ndarray = None,
-        angles_ieee: np.ndarray = None,
-        r: float = 50.0,
-        mode: str = "degree",       
+    translation_mca: np.ndarray,
+    angles_mca: np.ndarray,
+    translation_ieee: np.ndarray = None,
+    angles_ieee: np.ndarray = None,
+    r: float = 50.0,
+    mode: str = "degree",
 ) -> np.ndarray:
     """
     Vectorized computation of framewise displacement for all subjects and MCA runs.
@@ -133,12 +136,12 @@ def framewise_displacment_all_subjects_vectorized(
         raise ValueError("translation_ieee must be a 3D array of shape (n_subjects, 1, 3) or None")
     if angles_ieee is not None and angles_ieee.ndim != 3:
         raise ValueError("angles_ieee must be a 3D array of shape (n_subjects, 1, 3) or None")
-    
+
     n, n_mca, dims_t = translation_mca.shape
     _, _, dims_a = angles_mca.shape
     if dims_t != 3 or dims_a != 3:
         raise ValueError("translation_mca and angles_mca must have last dimension of size 3 (x, y, z)")
-    
+
     if translation_ieee is None:
         translation_ieee = np.zeros((n, 1, 3), dtype=translation_mca.dtype)
 
@@ -154,36 +157,35 @@ def framewise_displacment_all_subjects_vectorized(
         d_rotation = r * d_angles
     else:
         raise ValueError("Invalid mode. Mode should be either 'degree' or 'radian'.")
-    
+
     return d_translation + d_rotation
-    
+
 
 def mean_absolute_difference(FD_mca, FD_ieee):
-
     """Calculate Mean Absolute Difference (MAD) between MCA and IEEE framewise displacement across all subjects and runs.
-    
+
     Inputs:
         FD_mca: (N_subjects, N_MCA) array of framewise displacement for MCA runs
         FD_ieee: (N_subjects, 1)  or (N_subjects,) array of framewise displacement for IEEE reference.
-    
+
     Returns:
         mad: (N_subjects,) array of mean absolute differences for each subject
     """
 
     if FD_ieee.ndim == 1:
         FD_ieee = FD_ieee[:, np.newaxis]
-    
-    
+
     return np.mean(np.abs(FD_mca - FD_ieee), axis=1)
 
 
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # 4. STATISTICAL TESTS
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 def test_normality(data: np.ndarray) -> float:
     """Simple wrapper for Shapiro-Wilk test."""
     stat, p_value = shapiro(data)
     return p_value
+
 
 def compare_groups(group1: np.ndarray, group2: np.ndarray) -> tuple:
     """Simple wrapper for Mann-Whitney U test."""
@@ -191,9 +193,9 @@ def compare_groups(group1: np.ndarray, group2: np.ndarray) -> tuple:
     return stat, p_value
 
 
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # 5. OUTLIER / ANOMALY DETECTION
-#---------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, bandwidth=0.01, percentile=5):
     """
     Fits KDE on train_data (Normal/Passed) and detects outliers in test_data (Failed).
@@ -203,15 +205,15 @@ def detect_outliers_kde(train_data: np.ndarray, test_data: np.ndarray, bandwidth
     test_data = test_data.reshape(-1, 1)
 
     kde = KernelDensity(kernel="exponential", bandwidth=bandwidth).fit(train_data)
-    
+
     # Get threshold from training data
     log_probs_train = kde.score_samples(train_data)
     threshold = np.percentile(log_probs_train, percentile)
-    
+
     # Predict on test data
     log_probs_test = kde.score_samples(test_data)
     predictions = [-1 if p < threshold else 1 for p in log_probs_test]
-    
+
     return predictions, np.exp(log_probs_test)
 
 
@@ -234,4 +236,3 @@ def calculate_recall(predictions: list) -> float:
     tp = predictions.count(-1)
     fn = predictions.count(1)
     return tp / (tp + fn) if (tp + fn) > 0 else 0.0
-

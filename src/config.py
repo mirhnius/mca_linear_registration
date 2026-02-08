@@ -50,23 +50,13 @@ failed_palette_colors = {
     },
 }
 palette_colors_similarity_measures = {
-    FLIRT: {MNI2009cAsym: {"mutualinfo":"#9ACD32", 
-                           "normmi":"#90ee0d", 
-                           "normcorr":"#90eeb3", 
-                           "corratio":"#90ee90"
-                        }
-            }
-    }
+    FLIRT: {MNI2009cAsym: {"mutualinfo": "#9ACD32", "normmi": "#90ee0d", "normcorr": "#90eeb3", "corratio": "#90ee90"}}
+}
 
 failed_palette_colors_similarity_measures = {
-    FLIRT: {MNI2009cAsym: {"mutualinfo":"#6532cd", 
-                           "normmi":"#6f11f2", 
-                           "normcorr":"#6f114c", 
-                           "corratio":"#6f116f"
-                        }
-          }
-    }
-cost_function_names = {"mutualinfo":"MI","normmi":"NMI","normcorr":"NCC","corratio":"CR"}
+    FLIRT: {MNI2009cAsym: {"mutualinfo": "#6532cd", "normmi": "#6f11f2", "normcorr": "#6f114c", "corratio": "#6f116f"}}
+}
+cost_function_names = {"mutualinfo": "MI", "normmi": "NMI", "normcorr": "NCC", "corratio": "CR"}
 
 PD_list_path = Path("./PD_selected_subjects.txt")
 HC_list_path = Path("./HC_selected_subjects.txt")

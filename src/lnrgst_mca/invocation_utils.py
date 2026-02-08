@@ -30,30 +30,19 @@ def read_subjects_paths(file_path: str) -> List[str]:
 
 def find_scans(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[str] = None) -> List[pathlib.Path]:
     """
-    Finds and returns a list of scan paths based on the specified pattern.
-
-    Parameters:
-        input_dir (pathlib.Path): The directory to search within.
-        pattern (pathlib.Path): The pattern to search for.
-        sub_dirs (List[str]): Optional list of subdirectories to limit the search.
-
-    Returns:
-        List[pathlib.Path]: A list of scan paths that match the specified pattern.
+    Discover scan files under input_dir matching pattern. If sub_dirs provided,
+    search only within those directories (absolute or relative to input_dir).
     """
-
     if sub_dirs is None:
-        return list(input_dir.glob(str(pattern)))
+        return sorted(list(input_dir.glob(str(pattern))))
 
-    scan_paths = []
-    pattern = pathlib.Path("") / BASELINE_SESSION / ANATOMICAL / f"sub-*_{BASELINE_SESSION}_{ACQUISITION}_{RUN}_{MOSUF}"
-
+    scan_paths: List[pathlib.Path] = []
     for sub_dir in sub_dirs:
-        scan_paths.extend(list(pathlib.Path(sub_dir).glob(str(pattern))))
-
-        # if not list(pathlib.Path(sub_dir).glob(str(pattern))):
-        #     print(sub_dir)
-
-    return scan_paths
+        sub_path = pathlib.Path(sub_dir)
+        if not sub_path.is_absolute():
+            sub_path = input_dir / sub_path
+        scan_paths.extend(list(sub_path.glob(str(pattern))))
+    return sorted(scan_paths)
 
 
 def scan_filed_dict(scan_path: pathlib.Path) -> Dict:
@@ -202,9 +191,10 @@ class Preprocessing(ABC):
 
         invocation_path = self.invocation_dir / f"{subject_ID}_{session}_invocation.json"
         if dry_run:
-            print(f"Writing invocations to {invocation_path}")
-            json.dump(invocation, invocation_path, indent=4)
+            print(f"[DRY-RUN] Would write: {invocation_path}")
+            print(json.dumps(invocation, indent=2))
         else:
+            invocation_path.parent.mkdir(parents=True, exist_ok=True)
             with open(invocation_path, "w") as f:
                 json.dump(invocation, f, indent=4)
 
@@ -223,7 +213,7 @@ class Preprocessing(ABC):
             None
         """
         if dry_run:
-            print(f"Invocations exist on {self.invocation_dir}")
+            print(f"Invocations would be created under {self.invocation_dir}")
         else:
             self.invocation_dir.mkdir(parents=True, exist_ok=True)
             self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -398,24 +388,19 @@ class FLIRT_MCA_registration(FLIRT_IEEE_registration):
 
     def create_invocations(self, dry_run: bool = False):
         """
-        Generates and writes the FLIRT MCA registration invocations JSON files for each subject
-        across specified neumebr of MCA iterations. Each iteration potentially generates a slightly different
-        output file due to the randomness of the MCA algorithm.
-
-        Parameters:
-            dry_run (bool): If True, the invocations are printed to the console instead of being written to files.
-
-        Returns:
-            None
+        Generate invocations across MCA iterations without mutating base dirs.
         """
-
+        base_out = self.output_dir
+        base_inv = self.invocation_dir
         for i in range(self.n_mca):
-
-            self.output_dir = self.output_dir / f"{i+1}"
-            self.invocation_dir = self.invocation_dir / f"{i+1}"
-            super().create_invocations(dry_run)
-            self.output_dir = self.output_dir.parent
-            self.invocation_dir = self.invocation_dir.parent
+            iter_out = base_out / f"{i+1}"
+            iter_inv = base_inv / f"{i+1}"
+            original_out, original_inv = self.output_dir, self.invocation_dir
+            try:
+                self.output_dir, self.invocation_dir = iter_out, iter_inv
+                super().create_invocations(dry_run)
+            finally:
+                self.output_dir, self.invocation_dir = original_out, original_inv
 
 
 class ANTS_IEEE_registration(Registration):
@@ -662,9 +647,8 @@ def handle_preprocessing(subjects_map, subjects_map_after_preprocess, output_dir
         robustfov_output_dir = output_dir / "robustfov"
         bet_output_dir = output_dir / "bet"
 
-    if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
-        ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=args.dry_run)
-        BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=args.dry_run)
+    ROBUSTFOV_preprocessing(subjects_map, robustfov_output_dir, robustfov_invocation_dir).create_invocations(dry_run=dry_run)
+    BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=dry_run)
 
 
 def handle_unzipping(preprocess_output_dir, unziped_preprocess_dir):
