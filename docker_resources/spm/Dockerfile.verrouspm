@@ -1,4 +1,5 @@
 # Build Stage for Valgrind and Verrou
+# Build Stage for Valgrind and Verrou
 ARG IMAGE_BASE=ubuntu:20.04
 ARG VALGRIND_VERSION=3.23.0
 ARG VALGRIND_BRANCH=VALGRIND_3_23_0
@@ -64,13 +65,6 @@ ENV PATH="/opt/valgrind-${VALGRIND_VERSION}+verrou-dev/bin:${PATH}"
 # Copy SPM12 from build stage
 COPY --from=spm_build /opt/spm12 /opt/spm12
 RUN ln -s /opt/spm12/bin/spm12-octave /usr/local/bin/spm12
-
-# Set up user environment
-RUN useradd user -d /home/user -s /bin/bash \
-    && mkdir /home/user && chown -R user:user /home/user
-
-WORKDIR /home/user
-USER user
 
 # Confirm build success
 RUN echo "Image with Valgrind+Verrou and SPM12 successfully built"
