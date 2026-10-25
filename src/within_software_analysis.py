@@ -214,10 +214,10 @@ if __name__ == "__main__":
 
     # Calculate framewise displacement
     FD_mca_results = {
-        "FD_PD_fine": metrics_utils.FD_all_subjects(translations_mca_fine_PD, angles_mca_fine_PD),
-        "FD_HC_fine": metrics_utils.FD_all_subjects(translations_mca_fine_HC, angles_mca_fine_HC),
-        "FD_PD_failed": metrics_utils.FD_all_subjects(translations_mca_failed_PD, angles_mca_failed_PD),
-        "FD_HC_failed": metrics_utils.FD_all_subjects(translations_mca_failed_HC, angles_mca_failed_HC),
+        "FD_PD_fine": metrics_utils.framewise_displacment_all_subjects_vectorized(translations_mca_fine_PD, angles_mca_fine_PD),
+        "FD_HC_fine": metrics_utils.framewise_displacment_all_subjects_vectorized(translations_mca_fine_HC, angles_mca_fine_HC),
+        "FD_PD_failed": metrics_utils.framewise_displacment_all_subjects_vectorized(translations_mca_failed_PD, angles_mca_failed_PD),
+        "FD_HC_failed": metrics_utils.framewise_displacment_all_subjects_vectorized(translations_mca_failed_HC, angles_mca_failed_HC),
     }
 
     FD_mca_results["FD_all_fine"] = concatenate_cohorts(FD_mca_results["FD_PD_fine"], FD_mca_results["FD_HC_fine"])
@@ -226,10 +226,18 @@ if __name__ == "__main__":
     FD_mca_results["FD_all_PD"] = concatenate_cohorts(FD_mca_results["FD_PD_fine"], FD_mca_results["FD_PD_failed"])
 
     FD_ieee_results = {
-        "FD_ieee_PD_fine": metrics_utils.FD_all_subjects(translation_ieee_fine_PD[:, np.newaxis, :], angles_ieee_fine_PD[:, np.newaxis, :]),
-        "FD_ieee_HC_fine": metrics_utils.FD_all_subjects(translation_ieee_fine_HC[:, np.newaxis, :], angles_ieee_fine_HC[:, np.newaxis, :]),
-        "FD_ieee_PD_failed": metrics_utils.FD_all_subjects(translation_ieee_failed_PD[:, np.newaxis, :], angles_ieee_failed_PD[:, np.newaxis, :]),
-        "FD_ieee_HC_failed": metrics_utils.FD_all_subjects(translation_ieee_failed_HC[:, np.newaxis, :], angles_ieee_failed_HC[:, np.newaxis, :]),
+        "FD_ieee_PD_fine": metrics_utils.framewise_displacment_all_subjects_vectorized(
+            translation_ieee_fine_PD[:, np.newaxis, :], angles_ieee_fine_PD[:, np.newaxis, :]
+        ),
+        "FD_ieee_HC_fine": metrics_utils.framewise_displacment_all_subjects_vectorized(
+            translation_ieee_fine_HC[:, np.newaxis, :], angles_ieee_fine_HC[:, np.newaxis, :]
+        ),
+        "FD_ieee_PD_failed": metrics_utils.framewise_displacment_all_subjects_vectorized(
+            translation_ieee_failed_PD[:, np.newaxis, :], angles_ieee_failed_PD[:, np.newaxis, :]
+        ),
+        "FD_ieee_HC_failed": metrics_utils.framewise_displacment_all_subjects_vectorized(
+            translation_ieee_failed_HC[:, np.newaxis, :], angles_ieee_failed_HC[:, np.newaxis, :]
+        ),
     }
 
     FD_ieee_results["FD_ieee_all_fine"] = concatenate_cohorts(FD_ieee_results["FD_ieee_PD_fine"], FD_ieee_results["FD_ieee_HC_fine"])

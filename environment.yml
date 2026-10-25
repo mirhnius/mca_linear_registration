@@ -14,6 +14,8 @@ dependencies:
   - pillow
   - nibabel
   - nilearn
+  - fslpy
+  - pytest
   - jupyter
   - ipykernel
   - pip:

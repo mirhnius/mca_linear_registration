@@ -11,7 +11,8 @@
 
 QC
 metrics_exp
-test*
+/test_*
+/testing_*
 test_ppmi_hc
 testing_incovation_creator
 invocations*
@@ -31,3 +32,9 @@ original_data
 build
 lnrgst_mca.egg-info
 old
+.DS_Store
+.pytest_cache
+
+# keep boutiques descriptors and test fixtures despite the *.json / *.txt rules above
+!descriptors/*.json
+!tests/fixtures/**

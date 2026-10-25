@@ -18,5 +18,7 @@ setup(
         "scipy",
         "gif",
         "pillow",
+        "fslpy",
     ],
+    extras_require={"test": ["pytest"]},
 )

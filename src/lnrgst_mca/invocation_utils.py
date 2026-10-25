@@ -36,12 +36,16 @@ def find_scans(input_dir: pathlib.Path, pattern=PATTERN, sub_dirs: List[str] = N
     if sub_dirs is None:
         return sorted(list(input_dir.glob(str(pattern))))
 
+    # sub_dirs are subject directories, so drop the leading sub-* level from the pattern
+    parts = pathlib.Path(pattern).parts
+    sub_pattern = pathlib.Path(*parts[1:]) if parts and parts[0].startswith("sub-") else pathlib.Path(pattern)
+
     scan_paths: List[pathlib.Path] = []
     for sub_dir in sub_dirs:
         sub_path = pathlib.Path(sub_dir)
         if not sub_path.is_absolute():
             sub_path = input_dir / sub_path
-        scan_paths.extend(list(sub_path.glob(str(pattern))))
+        scan_paths.extend(list(sub_path.glob(str(sub_pattern))))
     return sorted(scan_paths)
 
 
@@ -626,12 +630,13 @@ def parse_args():
 
 
 # maybe remove this
-def prepare_preprocess_directories(output_dir: pathlib.Path):
+def prepare_preprocess_directories(output_dir: pathlib.Path, dry_run: bool = False):
 
     preprocess_output_dir = output_dir / "preprocess"
     unziped_preprocess_dir = output_dir / "preprocess_unzipped"
-    preprocess_output_dir.mkdir(parents=True, exist_ok=True)
-    unziped_preprocess_dir.mkdir(parents=True, exist_ok=True)
+    if not dry_run:
+        preprocess_output_dir.mkdir(parents=True, exist_ok=True)
+        unziped_preprocess_dir.mkdir(parents=True, exist_ok=True)
     return preprocess_output_dir, unziped_preprocess_dir
 
 
@@ -651,19 +656,29 @@ def handle_preprocessing(subjects_map, subjects_map_after_preprocess, output_dir
     BET_preprocessing(subjects_map_after_preprocess, bet_output_dir, bet_invocation_dir).create_invocations(dry_run=dry_run)
 
 
-def handle_unzipping(preprocess_output_dir, unziped_preprocess_dir):
+def handle_unzipping(preprocess_output_dir, unziped_preprocess_dir, dry_run=False):
+    if dry_run:
+        print(f"[DRY-RUN] Would unzip images from {preprocess_output_dir} to {unziped_preprocess_dir}")
+        return
     if not unziped_preprocess_dir.exists() or not any(unziped_preprocess_dir.iterdir()):
         unzip_images(preprocess_output_dir, unziped_preprocess_dir)
 
 
-def handle_reference(ref_path):
-    ref_nii = ref_path.with_suffix("")
+def handle_reference(ref_path, dry_run=False) -> pathlib.Path:
+    """
+    Returns the path to the uncompressed (.nii) reference, unzipping a .nii.gz reference next to it if needed.
+    """
+    ref_path = pathlib.Path(ref_path)
     if ref_path.suffix == GZ:
+        ref_nii = ref_path.with_suffix("")
         if not ref_nii.exists():
-            unzipper(ref_path, ref_path.parent)
+            if dry_run:
+                print(f"[DRY-RUN] Would unzip reference {ref_path} to {ref_nii}")
+            else:
+                unzipper(ref_path, ref_path.parent)
         return ref_nii
     elif ref_path.suffix == NII:
-        return str(ref_path)
+        return ref_path
     else:
         raise ValueError(f"{ref_path.name} has an unsupported format")
 
@@ -681,7 +696,7 @@ def handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip,
     ANTS_MCA_registration(
         subjects_map_after_preprocess, output_dir, invocation_dir, n_mca=args.n_mca, ref=args.ref, template_name=args.template_name
     ).create_invocations(dry_run=args.dry_run)
-    ref_nii_name = handle_reference(pathlib.Path(args.ref))
+    ref_nii_name = handle_reference(args.ref, dry_run=args.dry_run)
     SPM_IEEE_registration(
         subjects_map_after_unzip, output_dir, invocation_dir, ref=ref_nii_name, template_name=args.template_name
     ).create_invocations(dry_run=args.dry_run)
@@ -702,7 +717,7 @@ if __name__ == "__main__":
 
     # Prepare directories
     # seems very unnecessary
-    preprocess_output_dir, unziped_preprocess_dir = prepare_preprocess_directories(output_dir)
+    preprocess_output_dir, unziped_preprocess_dir = prepare_preprocess_directories(output_dir, dry_run=args.dry_run)
 
     # Create subject maps
     subjects_map = create_subject_map(input_dir, sub_dirs=sub_dirs)
@@ -710,13 +725,10 @@ if __name__ == "__main__":
     subjects_map_after_unzip = updating_subject_map(subjects_map, unziped_preprocess_dir, suffix=NII)
 
     # Handle preprocessing
-    handle_preprocessing(subjects_map, subjects_map_after_preprocess, output_dir, invocation_dir)
+    handle_preprocessing(subjects_map, subjects_map_after_preprocess, output_dir, invocation_dir, dry_run=args.dry_run)
 
     # Handle unzipping
-    handle_unzipping(preprocess_output_dir, unziped_preprocess_dir)
+    handle_unzipping(preprocess_output_dir, unziped_preprocess_dir, dry_run=args.dry_run)
 
-    # Handle reference
-    ref_nii_name = handle_reference(ref_path)
-
-    # Handle registration
+    # Handle registration (also resolves the uncompressed reference for SPM)
     handle_registration(subjects_map_after_preprocess, subjects_map_after_unzip, output_dir, invocation_dir, args)

@@ -100,7 +100,7 @@ def decompose_tensor(tensor: np.ndarray) -> tuple:
 
     for i in range(n):
         for j in range(m):
-            s, t, a, sh = affine.decompose(tensor[i, j])
+            s, t, a, sh = affine.decompose(tensor[i, j], angles=True, shears=True)
             scales[i, j] = s
             translations[i, j] = t
             angles[i, j] = np.degrees(a)

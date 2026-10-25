@@ -1,3 +1,6 @@
 [tool.black]
 line-length = 150
 target-version = ['py38']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
