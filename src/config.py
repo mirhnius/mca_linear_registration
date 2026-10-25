@@ -253,6 +253,8 @@ configurations_cost = {
             }
         }
     },
+    # corratio is FLIRT's default cost, so it was never re-run under metrics_exp:
+    # its results are the main FLIRT experiment (same as configurations[FLIRT][MNI2009cAsym])
     "corratio": {
         FLIRT: {
             MNI2009cAsym: {
@@ -263,8 +265,8 @@ configurations_cost = {
                 "failed_subjects_PD": ["sub-3709", "sub-3700", "sub-3403"],
                 "PD_list": PD_list_path,
                 "HC_list": HC_list_path,
-                "path_PD": PD_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
-                "path_HC": HC_path_cost / "normcorr" / FLIRT / MNI2009cAsym / ddof,
+                "path_PD": PD_path / FLIRT / MNI2009cAsym / ddof,
+                "path_HC": HC_path / FLIRT / MNI2009cAsym / ddof,
                 "pattern_PD": "_ses-BL",
                 "pattern_HC": "_ses-BL",
             }
